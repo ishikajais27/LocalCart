@@ -27,7 +27,7 @@ export default function Home() {
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🛍️</div>
         <p style={{ fontFamily: 'DM Sans, sans-serif', color: '#8B7355' }}>
-          Loading GullyMarket...
+          Loading LocalCart...
         </p>
       </div>
     </div>

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/authContext'
+import { useAuth } from '../../lib/authContext'
 
 type Role = 'user' | 'vendor'
 type Mode = 'choose' | 'signin' | 'signup'
@@ -58,7 +58,7 @@ export default function AccountPage() {
       {/* Left Panel */}
       <div style={styles.left}>
         <div style={styles.leftInner}>
-          <div style={styles.logo}>🛍️ GullyMarket</div>
+          <div style={styles.logo}>🛍️ LocalCart</div>
           <h1 style={styles.headline}>
             Your neighbourhood,
             <br />

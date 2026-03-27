@@ -1,12 +1,10 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
-
-const inter = Inter({ subsets: ['latin'] })
+import Providers from './providers'
 
 export const metadata: Metadata = {
-  title: 'LocalMart',
-  description: 'Support local artisans with pre-orders',
+  title: 'GullyMarket – Discover Local Street Stalls',
+  description: 'Order from local street stalls and artisans near you',
 }
 
 export default function RootLayout({
@@ -16,7 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   )
 }

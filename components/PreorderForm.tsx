@@ -105,11 +105,10 @@ export function PreOrderForm({
         {[1, 2].map((s) => (
           <div key={s} className="flex items-center gap-2">
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-                step >= s
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${step >= s
                   ? 'bg-terracotta text-white'
                   : 'bg-gray-100 text-gray-400'
-              }`}
+                }`}
             >
               {step > s ? '✓' : s}
             </div>

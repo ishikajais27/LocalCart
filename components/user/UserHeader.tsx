@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { BBSR_LOCATIONS } from '@/lib/mockData'
+import WriteReview from '@/components/user/WriteReview'
 
 export default function UserHeader() {
   const router = useRouter()
@@ -11,11 +12,14 @@ export default function UserHeader() {
   const [location, setLocation] = useState('KIIT Campus, Patia')
   const [showUserMenu, setShowUserMenu] = useState(false)
 
+  const [showReview, setShowReview] = useState(false)
+
   const links = [
     { label: '🏠 Home', href: '/search' },
     { label: '📦 Track Order', href: '/orders' },
     { label: '🕓 History', href: '/history' },
     { label: '❤️ Wishlist', href: '/history?tab=wishlist' },
+    { label: '✍️ Review', href: '#review' },
   ]
 
   const handleSearch = (e: React.FormEvent) => {
@@ -202,7 +206,7 @@ export default function UserHeader() {
 
         {/* Nav Links */}
         <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
-          {links.map((l) => (
+          {/* {links.map((l) => (
             <button
               key={l.href}
               onClick={() => router.push(l.href)}
@@ -221,7 +225,31 @@ export default function UserHeader() {
             >
               {l.label}
             </button>
+          ))} */}
+          {links.map((l) => (
+            <button
+              key={l.href}
+              onClick={() =>
+                l.href === '#review' ? setShowReview(true) : router.push(l.href)
+              }
+              style={{
+                background: path === l.href.split('?')[0] ? '#FFF0E6' : 'none',
+                border: 'none',
+                borderRadius: 8,
+                padding: '6px 12px',
+                fontSize: 13,
+                fontWeight: 600,
+                color: path === l.href.split('?')[0] ? '#FF6B2B' : '#8B7355',
+                cursor: 'pointer',
+                fontFamily: 'DM Sans, sans-serif',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {l.label}
+            </button>
           ))}
+
+          {showReview && <WriteReview onClose={() => setShowReview(false)} />}
         </div>
 
         {/* User Menu */}

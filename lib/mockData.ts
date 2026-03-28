@@ -5640,3 +5640,103 @@ export const REVIEWS = [
     helpfulCount: 8,
   },
 ]
+// lib/mockData.ts (append at the end)
+
+export const MOCK_REVIEWS = [
+  {
+    id: 'mr1',
+    productId: 'p1',
+    productName: 'Lavender Dream Candle',
+    customerName: 'Ananya S.',
+    rating: 5,
+    comment:
+      'Absolutely love the Lavender Dream candle! The fragrance is calming and the packaging was beautiful.',
+    date: '2024-02-15',
+    images: [
+      'https://images.unsplash.com/photo-1572726729207-a78d6feb18d7?w=100',
+    ],
+    reply: null,
+  },
+  {
+    id: 'mr2',
+    productId: 'p2',
+    productName: 'Rose & Sandalwood Candle',
+    customerName: 'Priya K.',
+    rating: 5,
+    comment:
+      'Rose & Sandalwood is my new favourite! Fast delivery and excellent customer service.',
+    date: '2024-02-05',
+    images: [
+      'https://images.unsplash.com/photo-1602607702065-d22cf19ae99c?w=100',
+    ],
+    reply: 'Thank you for the wonderful feedback! Glad you enjoyed it 🌸',
+  },
+  {
+    id: 'mr3',
+    productId: 'p6',
+    productName: 'Oxidized Earrings',
+    customerName: 'Suman K.',
+    rating: 5,
+    comment:
+      'The oxidized earrings are stunning! Great quality and very comfortable to wear.',
+    date: '2024-02-14',
+    images: [
+      'https://images.unsplash.com/photo-1588444837495-c6cfeb53f32d?w=100',
+    ],
+    reply: null,
+  },
+  {
+    id: 'mr4',
+    productId: 'p8',
+    productName: 'Aloo Tikki Platter',
+    customerName: 'Maya C.',
+    rating: 4,
+    comment:
+      'Best aloo tikki in town! The chutneys are amazing. Will order again.',
+    date: '2024-02-18',
+    images: [
+      'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=100',
+    ],
+    reply: null,
+  },
+  {
+    id: 'mr5',
+    productId: 'p16',
+    productName: 'Sambalpuri Saree',
+    customerName: 'Leena S.',
+    rating: 5,
+    comment:
+      'The Sambalpuri saree is exquisite. True craftsmanship. Will definitely buy again!',
+    date: '2024-02-11',
+    images: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=100'],
+    reply: 'So glad you loved it! Thank you for your support 🙏',
+  },
+  {
+    id: 'mr6',
+    productId: 'p23',
+    productName: 'Veg Momo (8 pcs)',
+    customerName: 'Vikas J.',
+    rating: 4,
+    comment:
+      'Veg momos were delicious, but the chutney could be spicier. Overall good!',
+    date: '2024-02-06',
+    images: [
+      'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=100',
+    ],
+    reply: 'Thanks for the feedback! We’ll work on a spicier option.',
+  },
+  {
+    id: 'mr7',
+    productId: 'p18',
+    productName: 'Tribal Wall Art',
+    customerName: 'Nisha T.',
+    rating: 5,
+    comment:
+      'Tribal wall art is unique and well-made. Highly recommend for home decor!',
+    date: '2024-02-08',
+    images: [
+      'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=100',
+    ],
+    reply: null,
+  },
+]

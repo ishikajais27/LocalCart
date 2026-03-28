@@ -4,13 +4,14 @@ import { useRouter } from 'next/navigation'
 import UserHeader from '@/components/user/UserHeader'
 import { getAllStalls } from '@/lib/stallsStore'
 import { CATEGORIES } from '@/lib/mockData'
+import WriteReview from '@/components/user/WriteReview'
 
 export default function SearchPage() {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
   const allStalls = getAllStalls()
-
+  const [showReview, setShowReview] = useState(false)
   const filtered = allStalls.filter((s) => {
     const matchCat = category === 'all' || s.category === category
     const matchQ =
@@ -30,7 +31,6 @@ export default function SearchPage() {
       }}
     >
       <UserHeader />
-
       {/* Hero */}
       <div
         style={{
@@ -97,7 +97,6 @@ export default function SearchPage() {
           </div>
         </div>
       </div>
-
       <div
         style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px 60px' }}
       >
@@ -268,7 +267,35 @@ export default function SearchPage() {
             ))}
           </div>
         )}
+        {/* Floating Review Button */}
+        <button
+          onClick={() => setShowReview(true)}
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 150,
+            background: '#FF6B2B',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 50,
+            padding: '14px 20px',
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: 'Syne, sans-serif',
+            boxShadow: '0 8px 24px rgba(255,107,43,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          ✍️ Write Review
+        </button>
+
+        {showReview && <WriteReview onClose={() => setShowReview(false)} />}
       </div>
+      x
     </div>
   )
 }

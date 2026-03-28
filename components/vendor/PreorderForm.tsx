@@ -1,7 +1,8 @@
 'use client'
 import { useState } from 'react'
-
-export default function AddProductForm() {
+import { addProduct } from '@/lib/stallsStore'
+// export default function AddProductForm() {
+export default function AddProductForm({ stallId }: { stallId: string }) {
   const [form, setForm] = useState({
     name: '',
     price: '',
@@ -36,21 +37,48 @@ export default function AddProductForm() {
     letterSpacing: '0.5px',
   }
 
+  // const handleSave = () => {
+  //   setProducts((p) => [
+  //     {
+  //       id: Date.now(),
+  //       name: form.name,
+  //       price: Number(form.price),
+  //       originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
+  //       description: form.description,
+  //       variants: form.variants
+  //         .split(',')
+  //         .map((v) => v.trim())
+  //         .filter(Boolean),
+  //     },
+  //     ...p,
+  //   ])
+  //   setForm({
+  //     name: '',
+  //     price: '',
+  //     originalPrice: '',
+  //     description: '',
+  //     variants: '',
+  //   })
+  //   setSaved(true)
+  //   setTimeout(() => setSaved(false), 2000)
+  // }
   const handleSave = () => {
-    setProducts((p) => [
-      {
-        id: Date.now(),
-        name: form.name,
-        price: Number(form.price),
-        originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
-        description: form.description,
-        variants: form.variants
-          .split(',')
-          .map((v) => v.trim())
-          .filter(Boolean),
-      },
-      ...p,
-    ])
+    const newProduct = {
+      id: `p_${Date.now()}`,
+      stallId,
+      name: form.name,
+      price: Number(form.price),
+      originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
+      description: form.description,
+      variants: form.variants
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean),
+      image:
+        'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=300',
+    }
+    addProduct(stallId, newProduct)
+    setProducts((p) => [newProduct, ...p])
     setForm({
       name: '',
       price: '',

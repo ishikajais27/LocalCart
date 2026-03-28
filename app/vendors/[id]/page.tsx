@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { getAllStalls, getAllProducts } from '@/lib/stallsStore'
 import UserHeader from '@/components/user/UserHeader'
 import Checkout from '@/components/user/Checkout'
+import WriteReview from '@/components/user/WriteReview'
 
 const VENDOR_STORIES: Record<
   string,
@@ -107,6 +108,7 @@ export default function VendorDetailPage() {
   >({})
   const [showCheckout, setShowCheckout] = useState(false)
   const [orderSuccess, setOrderSuccess] = useState(false)
+  const [showReview, setShowReview] = useState(false)
 
   if (!stall || !story) {
     return (
@@ -561,6 +563,34 @@ export default function VendorDetailPage() {
           </div>
         </div>
       )}
+      {/* Review Button */}
+      <button
+        onClick={() => setShowReview(true)}
+        style={{
+          position: 'fixed',
+          bottom: totalItems > 0 ? 90 : 24,
+          right: 24,
+          zIndex: 150,
+          background: '#1A1208',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 50,
+          padding: '12px 18px',
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: 'pointer',
+          fontFamily: 'Syne, sans-serif',
+          boxShadow: '0 8px 24px rgba(26,18,8,0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          transition: 'bottom 0.2s',
+        }}
+      >
+        ✍️ Review
+      </button>
+
+      {showReview && <WriteReview onClose={() => setShowReview(false)} />}
 
       {showCheckout && (
         <Checkout

@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { CATEGORIES } from '@/lib/mockData'
+import { addStall } from '@/lib/stallsStore'
 
 export default function VendorOnboardForm({
   onComplete,
@@ -45,16 +46,36 @@ export default function VendorOnboardForm({
     letterSpacing: '0.5px',
   }
 
+  // const submit = () => {
+  //   setLoading(true)
+  //   setTimeout(() => {
+  //     onComplete({
+  //       ...form,
+  //       id: 's_new',
+  //       rating: 0,
+  //       reviewCount: 0,
+  //       isOpen: true,
+  //     })
+  //     setLoading(false)
+  //   }, 1200)
+  // }
   const submit = () => {
     setLoading(true)
     setTimeout(() => {
-      onComplete({
+      const newStall = {
         ...form,
-        id: 's_new',
+        id: `s_new_${Date.now()}`,
         rating: 0,
         reviewCount: 0,
         isOpen: true,
-      })
+        image:
+          'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400',
+        tags: [],
+        distance: '0.0 km',
+        deliveryTime: `${form.openTime}–${form.closeTime}`,
+      }
+      addStall(newStall)
+      onComplete(newStall)
       setLoading(false)
     }, 1200)
   }

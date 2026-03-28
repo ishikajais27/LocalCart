@@ -444,7 +444,7 @@ export async function GET() {
   try {
     await connectDB()
 
-    const stalls = await Stall.find({ seeded: true })
+    const stalls = await Stall.collection.find({ seeded: true }).toArray()
     let totalUpserted = 0
 
     for (const stall of stalls) {
@@ -453,7 +453,7 @@ export async function GET() {
       if (!prods) continue
 
       for (const p of prods) {
-        await Product.updateOne(
+        await Product.collection.updateOne(
           { stallId: String(stall._id), name: p.name, seeded: true },
           { $set: { ...p, stallId: String(stall._id), seeded: true } },
           { upsert: true },

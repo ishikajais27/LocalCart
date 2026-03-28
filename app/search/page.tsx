@@ -1,3 +1,334 @@
+// 'use client'
+// import { useState, useEffect } from 'react'
+// import { useRouter } from 'next/navigation'
+// import UserHeader from '@/components/user/UserHeader'
+// import { CATEGORIES } from '@/lib/mockData'
+// import WriteReview from '@/components/user/WriteReview'
+
+// export default function SearchPage() {
+//   const router = useRouter()
+//   const [query, setQuery] = useState('')
+//   const [category, setCategory] = useState('all')
+//   const [allStalls, setAllStalls] = useState<any[]>([])
+//   const [loading, setLoading] = useState(true)
+//   const [showReview, setShowReview] = useState(false)
+
+//   useEffect(() => {
+//     const fetchStalls = async () => {
+//       try {
+//         const res = await fetch('/api/stalls')
+//         const data = await res.json()
+//         if (Array.isArray(data)) setAllStalls(data)
+//       } catch (e) {
+//         console.error(e)
+//       } finally {
+//         setLoading(false)
+//       }
+//     }
+//     fetchStalls()
+//     const interval = setInterval(fetchStalls, 10000)
+//     return () => clearInterval(interval)
+//   }, [])
+
+//   const filtered = allStalls.filter((s) => {
+//     const matchCat = category === 'all' || s.category === category
+//     const matchQ =
+//       !query ||
+//       s.name?.toLowerCase().includes(query.toLowerCase()) ||
+//       s.location?.toLowerCase().includes(query.toLowerCase()) ||
+//       s.tags?.some((t: string) => t.toLowerCase().includes(query.toLowerCase()))
+//     return matchCat && matchQ
+//   })
+
+//   return (
+//     <div
+//       style={{
+//         minHeight: '100vh',
+//         background: '#FFF8F0',
+//         fontFamily: 'DM Sans, sans-serif',
+//       }}
+//     >
+//       <UserHeader />
+//       {/* Hero */}
+//       <div
+//         style={{
+//           background: 'linear-gradient(135deg, #FF6B2B 0%, #e85d20 100%)',
+//           padding: '40px 24px 32px',
+//         }}
+//       >
+//         <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
+//           <h1
+//             style={{
+//               fontFamily: 'Syne, sans-serif',
+//               fontSize: 30,
+//               fontWeight: 800,
+//               color: '#fff',
+//               marginBottom: 8,
+//             }}
+//           >
+//             Discover Local Stalls 🛍️
+//           </h1>
+//           <p
+//             style={{
+//               color: 'rgba(255,255,255,0.85)',
+//               fontSize: 14,
+//               marginBottom: 24,
+//             }}
+//           >
+//             Handmade, homegrown, and just around the corner.
+//           </p>
+//           <div
+//             style={{
+//               display: 'flex',
+//               alignItems: 'center',
+//               gap: 10,
+//               background: '#fff',
+//               borderRadius: 14,
+//               padding: '12px 18px',
+//               boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+//             }}
+//           >
+//             <span style={{ fontSize: 18, color: '#C4A882' }}>🔍</span>
+//             <input
+//               style={{
+//                 border: 'none',
+//                 outline: 'none',
+//                 fontSize: 15,
+//                 fontFamily: 'DM Sans, sans-serif',
+//                 flex: 1,
+//                 color: '#1A1208',
+//                 background: 'transparent',
+//               }}
+//               placeholder="Search stalls, products, categories…"
+//               value={query}
+//               onChange={(e) => setQuery(e.target.value)}
+//             />
+//             {query && (
+//               <span
+//                 style={{ color: '#8B7355', cursor: 'pointer', fontSize: 14 }}
+//                 onClick={() => setQuery('')}
+//               >
+//                 ✕
+//               </span>
+//             )}
+//           </div>
+//         </div>
+//       </div>
+
+//       <div
+//         style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px 60px' }}
+//       >
+//         {/* Categories */}
+//         <div
+//           style={{
+//             display: 'flex',
+//             gap: 8,
+//             overflowX: 'auto',
+//             paddingBottom: 8,
+//             marginBottom: 24,
+//           }}
+//         >
+//           {CATEGORIES.map((c) => (
+//             <button
+//               key={c.id}
+//               onClick={() => setCategory(c.id)}
+//               style={{
+//                 background: category === c.id ? '#FF6B2B' : '#fff',
+//                 color: category === c.id ? '#fff' : '#8B7355',
+//                 border: `2px solid ${category === c.id ? '#FF6B2B' : '#F0E6D9'}`,
+//                 borderRadius: 20,
+//                 padding: '8px 16px',
+//                 fontSize: 13,
+//                 fontWeight: 600,
+//                 cursor: 'pointer',
+//                 whiteSpace: 'nowrap',
+//                 fontFamily: 'DM Sans, sans-serif',
+//               }}
+//             >
+//               {c.emoji} {c.label}
+//             </button>
+//           ))}
+//         </div>
+
+//         {loading ? (
+//           <div style={{ textAlign: 'center', padding: '80px 0' }}>
+//             <div style={{ fontSize: 32 }}>⏳</div>
+//             <p style={{ color: '#8B7355', marginTop: 12 }}>Loading stalls...</p>
+//           </div>
+//         ) : (
+//           <>
+//             <p style={{ fontSize: 13, color: '#8B7355', marginBottom: 16 }}>
+//               {filtered.length} stall{filtered.length !== 1 ? 's' : ''} found
+//               {query ? ` for "${query}"` : ''}
+//             </p>
+
+//             {filtered.length === 0 ? (
+//               <div style={{ textAlign: 'center', padding: '80px 0' }}>
+//                 <div style={{ fontSize: 48 }}>🏪</div>
+//                 <p style={{ color: '#8B7355', marginTop: 12 }}>
+//                   No stalls found. Try a different search.
+//                 </p>
+//               </div>
+//             ) : (
+//               <div
+//                 style={{
+//                   display: 'grid',
+//                   gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+//                   gap: 18,
+//                 }}
+//               >
+//                 {filtered.map((stall) => (
+//                   <div
+//                     key={stall._id || stall.id}
+//                     onClick={() =>
+//                       router.push(`/vendors/${stall._id || stall.id}`)
+//                     }
+//                     style={{
+//                       background: '#fff',
+//                       borderRadius: 14,
+//                       border: '1px solid #F0E6D9',
+//                       overflow: 'hidden',
+//                       cursor: 'pointer',
+//                       boxShadow: '0 2px 12px rgba(26,18,8,0.05)',
+//                       transition: 'transform 0.15s',
+//                     }}
+//                   >
+//                     <div
+//                       style={{
+//                         position: 'relative',
+//                         height: 160,
+//                         overflow: 'hidden',
+//                       }}
+//                     >
+//                       <img
+//                         src={stall.image}
+//                         alt={stall.name}
+//                         style={{
+//                           width: '100%',
+//                           height: '100%',
+//                           objectFit: 'cover',
+//                         }}
+//                       />
+//                       <div
+//                         style={{
+//                           position: 'absolute',
+//                           top: 10,
+//                           right: 10,
+//                           background: stall.isOpen ? '#dcfce7' : '#fee2e2',
+//                           color: stall.isOpen ? '#16a34a' : '#dc2626',
+//                           fontSize: 11,
+//                           fontWeight: 700,
+//                           padding: '3px 10px',
+//                           borderRadius: 20,
+//                         }}
+//                       >
+//                         {stall.isOpen ? '● Open' : '● Closed'}
+//                       </div>
+//                     </div>
+//                     <div style={{ padding: '14px 16px' }}>
+//                       <h3
+//                         style={{
+//                           fontFamily: 'Syne, sans-serif',
+//                           fontSize: 15,
+//                           fontWeight: 700,
+//                           color: '#1A1208',
+//                           marginBottom: 4,
+//                         }}
+//                       >
+//                         {stall.name}
+//                       </h3>
+//                       <p
+//                         style={{
+//                           fontSize: 12,
+//                           color: '#8B7355',
+//                           marginBottom: 8,
+//                         }}
+//                       >
+//                         📍 {stall.location} · {stall.distance}
+//                       </p>
+//                       <div
+//                         style={{
+//                           display: 'flex',
+//                           gap: 6,
+//                           flexWrap: 'wrap',
+//                           marginBottom: 10,
+//                         }}
+//                       >
+//                         {stall.tags?.slice(0, 3).map((t: string) => (
+//                           <span
+//                             key={t}
+//                             style={{
+//                               background: '#FFF0E6',
+//                               color: '#FF6B2B',
+//                               border: '1px solid rgba(255,107,43,0.2)',
+//                               borderRadius: 20,
+//                               padding: '2px 10px',
+//                               fontSize: 11,
+//                               fontWeight: 500,
+//                             }}
+//                           >
+//                             {t}
+//                           </span>
+//                         ))}
+//                       </div>
+//                       <div
+//                         style={{
+//                           display: 'flex',
+//                           justifyContent: 'space-between',
+//                           alignItems: 'center',
+//                         }}
+//                       >
+//                         <span
+//                           style={{
+//                             fontSize: 13,
+//                             fontWeight: 700,
+//                             color: '#1A1208',
+//                           }}
+//                         >
+//                           ⭐ {stall.rating} ({stall.reviewCount})
+//                         </span>
+//                         <span style={{ fontSize: 12, color: '#8B7355' }}>
+//                           🚚 {stall.deliveryTime}
+//                         </span>
+//                       </div>
+//                     </div>
+//                   </div>
+//                 ))}
+//               </div>
+//             )}
+//           </>
+//         )}
+
+//         <button
+//           onClick={() => setShowReview(true)}
+//           style={{
+//             position: 'fixed',
+//             bottom: 24,
+//             right: 24,
+//             zIndex: 150,
+//             background: '#FF6B2B',
+//             color: '#fff',
+//             border: 'none',
+//             borderRadius: 50,
+//             padding: '14px 20px',
+//             fontSize: 14,
+//             fontWeight: 700,
+//             cursor: 'pointer',
+//             fontFamily: 'Syne, sans-serif',
+//             boxShadow: '0 8px 24px rgba(255,107,43,0.4)',
+//             display: 'flex',
+//             alignItems: 'center',
+//             gap: 8,
+//           }}
+//         >
+//           ✍️ Write Review
+//         </button>
+
+//         {showReview && <WriteReview onClose={() => setShowReview(false)} />}
+//       </div>
+//     </div>
+//   )
+// }
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -44,7 +375,8 @@ export default function SearchPage() {
     <div
       style={{
         minHeight: '100vh',
-        background: '#FFF8F0',
+        background:
+          'linear-gradient(160deg, #e8efe6 0%, #deeadb 40%, #e4ece0 100%)',
         fontFamily: 'DM Sans, sans-serif',
       }}
     >
@@ -52,7 +384,7 @@ export default function SearchPage() {
       {/* Hero */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #FF6B2B 0%, #e85d20 100%)',
+          background: 'linear-gradient(135deg, #3d7a4f 0%, #2e6040 100%)',
           padding: '40px 24px 32px',
         }}
       >
@@ -88,7 +420,7 @@ export default function SearchPage() {
               boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
             }}
           >
-            <span style={{ fontSize: 18, color: '#C4A882' }}>🔍</span>
+            <span style={{ fontSize: 18, color: '#7a9e7a' }}>🔍</span>
             <input
               style={{
                 border: 'none',
@@ -96,7 +428,7 @@ export default function SearchPage() {
                 fontSize: 15,
                 fontFamily: 'DM Sans, sans-serif',
                 flex: 1,
-                color: '#1A1208',
+                color: '#1a2e1a',
                 background: 'transparent',
               }}
               placeholder="Search stalls, products, categories…"
@@ -105,7 +437,7 @@ export default function SearchPage() {
             />
             {query && (
               <span
-                style={{ color: '#8B7355', cursor: 'pointer', fontSize: 14 }}
+                style={{ color: '#5a7a5a', cursor: 'pointer', fontSize: 14 }}
                 onClick={() => setQuery('')}
               >
                 ✕
@@ -133,9 +465,9 @@ export default function SearchPage() {
               key={c.id}
               onClick={() => setCategory(c.id)}
               style={{
-                background: category === c.id ? '#FF6B2B' : '#fff',
-                color: category === c.id ? '#fff' : '#8B7355',
-                border: `2px solid ${category === c.id ? '#FF6B2B' : '#F0E6D9'}`,
+                background: category === c.id ? '#3d7a4f' : '#fff',
+                color: category === c.id ? '#fff' : '#5a7a5a',
+                border: `2px solid ${category === c.id ? '#3d7a4f' : '#c8ddc8'}`,
                 borderRadius: 20,
                 padding: '8px 16px',
                 fontSize: 13,
@@ -153,11 +485,11 @@ export default function SearchPage() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: '80px 0' }}>
             <div style={{ fontSize: 32 }}>⏳</div>
-            <p style={{ color: '#8B7355', marginTop: 12 }}>Loading stalls...</p>
+            <p style={{ color: '#5a7a5a', marginTop: 12 }}>Loading stalls...</p>
           </div>
         ) : (
           <>
-            <p style={{ fontSize: 13, color: '#8B7355', marginBottom: 16 }}>
+            <p style={{ fontSize: 13, color: '#5a7a5a', marginBottom: 16 }}>
               {filtered.length} stall{filtered.length !== 1 ? 's' : ''} found
               {query ? ` for "${query}"` : ''}
             </p>
@@ -165,7 +497,7 @@ export default function SearchPage() {
             {filtered.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '80px 0' }}>
                 <div style={{ fontSize: 48 }}>🏪</div>
-                <p style={{ color: '#8B7355', marginTop: 12 }}>
+                <p style={{ color: '#5a7a5a', marginTop: 12 }}>
                   No stalls found. Try a different search.
                 </p>
               </div>
@@ -186,10 +518,10 @@ export default function SearchPage() {
                     style={{
                       background: '#fff',
                       borderRadius: 14,
-                      border: '1px solid #F0E6D9',
+                      border: '1px solid #c8ddc8',
                       overflow: 'hidden',
                       cursor: 'pointer',
-                      boxShadow: '0 2px 12px rgba(26,18,8,0.05)',
+                      boxShadow: '0 2px 12px rgba(60,100,60,0.07)',
                       transition: 'transform 0.15s',
                     }}
                   >
@@ -231,7 +563,7 @@ export default function SearchPage() {
                           fontFamily: 'Syne, sans-serif',
                           fontSize: 15,
                           fontWeight: 700,
-                          color: '#1A1208',
+                          color: '#1a2e1a',
                           marginBottom: 4,
                         }}
                       >
@@ -240,7 +572,7 @@ export default function SearchPage() {
                       <p
                         style={{
                           fontSize: 12,
-                          color: '#8B7355',
+                          color: '#5a7a5a',
                           marginBottom: 8,
                         }}
                       >
@@ -258,9 +590,9 @@ export default function SearchPage() {
                           <span
                             key={t}
                             style={{
-                              background: '#FFF0E6',
-                              color: '#FF6B2B',
-                              border: '1px solid rgba(255,107,43,0.2)',
+                              background: '#e6f2e6',
+                              color: '#3d7a4f',
+                              border: '1px solid rgba(61,122,79,0.2)',
                               borderRadius: 20,
                               padding: '2px 10px',
                               fontSize: 11,
@@ -282,12 +614,12 @@ export default function SearchPage() {
                           style={{
                             fontSize: 13,
                             fontWeight: 700,
-                            color: '#1A1208',
+                            color: '#1a2e1a',
                           }}
                         >
                           ⭐ {stall.rating} ({stall.reviewCount})
                         </span>
-                        <span style={{ fontSize: 12, color: '#8B7355' }}>
+                        <span style={{ fontSize: 12, color: '#5a7a5a' }}>
                           🚚 {stall.deliveryTime}
                         </span>
                       </div>
@@ -306,7 +638,7 @@ export default function SearchPage() {
             bottom: 24,
             right: 24,
             zIndex: 150,
-            background: '#FF6B2B',
+            background: '#3d7a4f',
             color: '#fff',
             border: 'none',
             borderRadius: 50,
@@ -315,7 +647,7 @@ export default function SearchPage() {
             fontWeight: 700,
             cursor: 'pointer',
             fontFamily: 'Syne, sans-serif',
-            boxShadow: '0 8px 24px rgba(255,107,43,0.4)',
+            boxShadow: '0 8px 24px rgba(61,122,79,0.4)',
             display: 'flex',
             alignItems: 'center',
             gap: 8,

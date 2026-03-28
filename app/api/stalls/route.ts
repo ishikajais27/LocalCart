@@ -50,24 +50,37 @@ async function seedIfEmpty() {
   }
 }
 
+// export async function GET() {
+//   try {
+//     await connectDB()
+//     await seedIfEmpty()
+//     const stalls = await Stall.find({}).sort({ createdAt: -1 })
+//     return NextResponse.json(stalls)
+//   } catch (e) {
+//     console.error(e)
+//     return NextResponse.json({ error: 'Server error' }, { status: 500 })
+//   }
+// }
+
+// export async function POST(req: NextRequest) {
+//   try {
+//     await connectDB()
+//     const body = await req.json()
+//     const stall = await Stall.create(body)
+//     return NextResponse.json(stall, { status: 201 })
+//   } catch (e) {
+//     console.error(e)
+//     return NextResponse.json({ error: 'Server error' }, { status: 500 })
+//   }
+// }
+
 export async function GET() {
   try {
     await connectDB()
-    await seedIfEmpty()
+    // Run seeding in background — don't block the response
+    seedIfEmpty().catch((e) => console.error('Seed error:', e))
     const stalls = await Stall.find({}).sort({ createdAt: -1 })
     return NextResponse.json(stalls)
-  } catch (e) {
-    console.error(e)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
-  }
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    await connectDB()
-    const body = await req.json()
-    const stall = await Stall.create(body)
-    return NextResponse.json(stall, { status: 201 })
   } catch (e) {
     console.error(e)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

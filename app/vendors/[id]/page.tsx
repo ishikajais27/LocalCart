@@ -13,23 +13,43 @@ export default function VendorDetailPage() {
   const [showCheckout, setShowCheckout] = useState(false)
   const [orderSuccess, setOrderSuccess] = useState(false)
   const [loading, setLoading] = useState(true)
-
+  const [productsLoading, setProductsLoading] = useState(true)
+  // useEffect(() => {
+  //   if (!id) return
+  //   const fetchData = async () => {
+  //     try {
+  //       const [stallRes, productsRes] = await Promise.all([
+  //         fetch(`/api/stalls/${id}`),
+  //         fetch(`/api/products?stallId=${id}`),
+  //       ])
+  //       const stallData = await stallRes.json()
+  //       const productsData = await productsRes.json()
+  //       setStall(stallData)
+  //       if (Array.isArray(productsData)) setProducts(productsData)
+  //     } catch (e) {
+  //       console.error(e)
+  //     } finally {
+  //       setLoading(false)
+  //     }
+  //   }
+  //   fetchData()
+  // }, [id])
   useEffect(() => {
     if (!id) return
     const fetchData = async () => {
       try {
-        const [stallRes, productsRes] = await Promise.all([
-          fetch(`/api/stalls/${id}`),
-          fetch(`/api/products?stallId=${id}`),
-        ])
+        const stallRes = await fetch(`/api/stalls/${id}`)
         const stallData = await stallRes.json()
-        const productsData = await productsRes.json()
         setStall(stallData)
+        setLoading(false)
+        const productsRes = await fetch(`/api/products?stallId=${id}`)
+        const productsData = await productsRes.json()
         if (Array.isArray(productsData)) setProducts(productsData)
       } catch (e) {
         console.error(e)
-      } finally {
         setLoading(false)
+      } finally {
+        setProductsLoading(false)
       }
     }
     fetchData()
@@ -191,6 +211,28 @@ export default function VendorDetailPage() {
               'linear-gradient(to top, rgba(26,18,8,0.7), transparent)',
           }}
         />
+        {/* <div style={{ position: 'absolute', bottom: 24, left: 24, right: 24 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginBottom: 6,
+            }}
+          >
+            <span
+              style={{
+                background: stall.isOpen ? '#dcfce7' : '#fee2e2',
+                color: stall.isOpen ? '#16a34a' : '#dc2626',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '4px 10px',
+                borderRadius: 20,
+              }}
+            >
+              {stall.isOpen ? '● Open' : '● Closed'}
+            </span>
+          </div> */}
         <div style={{ position: 'absolute', bottom: 24, left: 24, right: 24 }}>
           <div
             style={{
@@ -200,6 +242,22 @@ export default function VendorDetailPage() {
               marginBottom: 6,
             }}
           >
+            <button
+              onClick={() => router.back()}
+              style={{
+                background: 'rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.4)',
+                borderRadius: 20,
+                padding: '4px 14px',
+                color: '#fff',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                backdropFilter: 'blur(8px)',
+              }}
+            >
+              ← Back
+            </button>
             <span
               style={{
                 background: stall.isOpen ? '#dcfce7' : '#fee2e2',
@@ -259,7 +317,29 @@ export default function VendorDetailPage() {
           Menu
         </h2>
 
-        {products.length === 0 ? (
+        {/* {products.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 0' }}>
+            <div style={{ fontSize: 48 }}>📦</div>
+            <p style={{ color: '#8B7355', marginTop: 12 }}>
+              No products listed yet.
+            </p>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+              gap: 18,
+            }}
+          > */}
+        {productsLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <div style={{ fontSize: 24 }}>⏳</div>
+            <p style={{ color: '#8B7355', marginTop: 8, fontSize: 13 }}>
+              Loading menu...
+            </p>
+          </div>
+        ) : products.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0' }}>
             <div style={{ fontSize: 48 }}>📦</div>
             <p style={{ color: '#8B7355', marginTop: 12 }}>

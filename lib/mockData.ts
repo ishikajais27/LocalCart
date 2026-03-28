@@ -1,13 +1,12 @@
 export const CATEGORIES = [
   { id: 'all', label: 'All', emoji: '🏪' },
-  { id: 'candles', label: 'Candles', emoji: '🕯️' },
-  { id: 'pottery', label: 'Pottery', emoji: '🏺' },
+  { id: 'food', label: 'Food', emoji: '🍱' },
   { id: 'jewellery', label: 'Jewellery', emoji: '💎' },
-  { id: 'street-food', label: 'Street Food', emoji: '🍜' },
-  { id: 'art', label: 'Art', emoji: '🎨' },
-  { id: 'plants', label: 'Plants', emoji: '🌿' },
-  { id: 'handmade', label: 'Handmade', emoji: '🧶' },
-  { id: 'clothing', label: 'Clothing', emoji: '👗' },
+  { id: 'candles', label: 'Candles', emoji: '🕯️' },
+  { id: 'gifts', label: 'Gifts', emoji: '🎁' },
+  { id: 'handicrafts', label: 'Handicrafts', emoji: '🏺' },
+  { id: 'organic', label: 'Organic', emoji: '🌿' },
+  { id: 'bakery', label: 'Bakery', emoji: '🥐' },
 ]
 
 export const TIME_SLOTS = [

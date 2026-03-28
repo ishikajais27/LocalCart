@@ -773,9 +773,9 @@ export default function VendorOnboardForm({
       await fetch('/api/auth/update-stall', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, stallId: null }),
+        body: JSON.stringify({ userId: user.id, stallId: undefined }),
       })
-      login({ ...user, stallId: null })
+      login({ ...user, stallId: undefined })
       onComplete(null)
     } catch (e) {
       console.error(e)

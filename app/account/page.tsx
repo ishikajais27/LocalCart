@@ -32,6 +32,7 @@ export default function AccountPage() {
           return
         }
         login(data)
+        router.push(data.role === 'vendor' ? '/vendors' : '/search')
       } else {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
@@ -45,12 +46,12 @@ export default function AccountPage() {
           return
         }
         login(data)
+        router.push(data.role === 'vendor' ? '/vendors' : '/search')
       }
-      router.push(role === 'vendor' ? '/vendors' : '/search')
     } catch {
       setError('Something went wrong. Try again.')
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
@@ -129,7 +130,13 @@ export default function AccountPage() {
 
           {(mode === 'signin' || mode === 'signup') && (
             <>
-              <button onClick={() => setMode('choose')} style={styles.back}>
+              <button
+                onClick={() => {
+                  setMode('choose')
+                  setError('')
+                }}
+                style={styles.back}
+              >
                 ← Back
               </button>
               <div
@@ -158,6 +165,7 @@ export default function AccountPage() {
                   style={styles.input}
                   placeholder="Full Name"
                   value={form.name}
+                  autoFocus
                   onChange={(e) =>
                     setForm((f) => ({ ...f, name: e.target.value }))
                   }
@@ -168,9 +176,11 @@ export default function AccountPage() {
                 placeholder="Email Address"
                 type="email"
                 value={form.email}
+                autoFocus={mode === 'signin'}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, email: e.target.value }))
                 }
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
               />
               <input
                 style={styles.input}
@@ -180,6 +190,7 @@ export default function AccountPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, password: e.target.value }))
                 }
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
               />
 
               {error && <p style={styles.error}>{error}</p>}
@@ -190,12 +201,14 @@ export default function AccountPage() {
                   width: '100%',
                   justifyContent: 'center',
                   marginTop: 8,
+                  opacity: loading ? 0.7 : 1,
+                  cursor: loading ? 'not-allowed' : 'pointer',
                 }}
                 onClick={handleSubmit}
                 disabled={loading}
               >
                 {loading
-                  ? 'Please wait...'
+                  ? '⏳ Please wait...'
                   : mode === 'signup'
                     ? 'Create Account'
                     : 'Sign In'}
@@ -211,9 +224,11 @@ export default function AccountPage() {
                     cursor: 'pointer',
                     fontWeight: 600,
                   }}
-                  onClick={() =>
+                  onClick={() => {
                     setMode(mode === 'signup' ? 'signin' : 'signup')
-                  }
+                    setError('')
+                    setForm({ name: '', email: '', password: '' })
+                  }}
                 >
                   {mode === 'signup' ? 'Sign In' : 'Sign Up'}
                 </span>
@@ -348,6 +363,8 @@ const styles: Record<string, React.CSSProperties> = {
     background: '#fff',
     color: '#1A1208',
     display: 'block',
+    outline: 'none',
+    boxSizing: 'border-box',
   },
   error: {
     color: '#dc2626',

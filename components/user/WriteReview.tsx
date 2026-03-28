@@ -1,48 +1,92 @@
 'use client'
-import { useState } from 'react'
-import { STALLS, PRODUCTS } from '@/lib/mockData'
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/lib/authContext'
 
 interface WriteReviewProps {
   onClose: () => void
 }
 
 export default function WriteReview({ onClose }: WriteReviewProps) {
+  const { user } = useAuth()
   const [step, setStep] = useState<'stall' | 'product' | 'review'>('stall')
-  const [selectedStall, setSelectedStall] = useState<string>('')
-  const [selectedProduct, setSelectedProduct] = useState<string>('')
+  const [stalls, setStalls] = useState<any[]>([])
+  const [products, setProducts] = useState<any[]>([])
+  const [selectedStall, setSelectedStall] = useState<any>(null)
+  const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [comment, setComment] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [stallSearch, setStallSearch] = useState('')
+  const [loadingStalls, setLoadingStalls] = useState(true)
+  const [loadingProducts, setLoadingProducts] = useState(false)
 
-  const filteredStalls = STALLS.filter(
-    (s) =>
-      s.name.toLowerCase().includes(stallSearch.toLowerCase()) ||
-      s.location.toLowerCase().includes(stallSearch.toLowerCase()),
-  ).slice(0, 20)
+  useEffect(() => {
+    fetch('/api/stalls')
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d)) setStalls(d)
+      })
+      .finally(() => setLoadingStalls(false))
+  }, [])
 
-  const stallProducts = selectedStall ? PRODUCTS[selectedStall] || [] : []
-  const currentStall = STALLS.find((s) => s.id === selectedStall)
-  const currentProduct = stallProducts.find(
-    (p: any) => p.id === selectedProduct,
-  )
+  const selectStall = async (stall: any) => {
+    setSelectedStall(stall)
+    setSelectedProduct(null)
+    setLoadingProducts(true)
+    setStep('product')
+    try {
+      const res = await fetch(`/api/products?stallId=${stall._id || stall.id}`)
+      const data = await res.json()
+      if (Array.isArray(data)) setProducts(data)
+      else setProducts([])
+    } catch {
+      setProducts([])
+    } finally {
+      setLoadingProducts(false)
+    }
+  }
 
-  const handleSubmit = () => {
-    if (!rating || !comment.trim()) return
+  const handleSubmit = async () => {
+    if (!rating || !comment.trim() || !selectedStall || !selectedProduct) return
+    try {
+      await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stallId: selectedStall._id || selectedStall.id,
+          stallName: selectedStall.name,
+          productId: selectedProduct._id || selectedProduct.id,
+          productName: selectedProduct.name,
+          customerName: user?.name || 'Anonymous',
+          rating,
+          comment,
+          images: [],
+        }),
+      })
+    } catch (e) {
+      console.error(e)
+    }
     setSubmitted(true)
   }
 
   const resetAll = () => {
     setStep('stall')
-    setSelectedStall('')
-    setSelectedProduct('')
+    setSelectedStall(null)
+    setSelectedProduct(null)
     setRating(0)
     setHoverRating(0)
     setComment('')
     setSubmitted(false)
     setStallSearch('')
+    setProducts([])
   }
+
+  const filteredStalls = stalls.filter(
+    (s) =>
+      s.name?.toLowerCase().includes(stallSearch.toLowerCase()) ||
+      s.location?.toLowerCase().includes(stallSearch.toLowerCase()),
+  )
 
   if (submitted) {
     return (
@@ -64,11 +108,11 @@ export default function WriteReview({ onClose }: WriteReviewProps) {
             <p style={{ fontSize: 14, color: '#8B7355', marginBottom: 8 }}>
               Thank you for reviewing{' '}
               <strong style={{ color: '#FF6B2B' }}>
-                {currentProduct?.name}
+                {selectedProduct?.name}
               </strong>
             </p>
             <p style={{ fontSize: 13, color: '#C4A882', marginBottom: 32 }}>
-              from {currentStall?.name}
+              from {selectedStall?.name}
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
               <button onClick={resetAll} style={styles.btnSecondary}>
@@ -87,7 +131,6 @@ export default function WriteReview({ onClose }: WriteReviewProps) {
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
         <div style={styles.header}>
           <div>
             <h2 style={styles.title}>Write a Review</h2>
@@ -105,19 +148,16 @@ export default function WriteReview({ onClose }: WriteReviewProps) {
                       background:
                         step === s
                           ? '#FF6B2B'
-                          : (s === 'product' &&
-                                (step === 'product' || step === 'review')) ||
-                              (s === 'review' && step === 'review') ||
-                              (s === 'stall' && selectedStall)
+                          : (i === 0 && selectedStall) ||
+                              (i === 1 && selectedProduct)
                             ? '#FF6B2B'
                             : '#F0E6D9',
-                      color: step === s || selectedStall ? '#fff' : '#C4A882',
+                      color: '#fff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: 11,
                       fontWeight: 800,
-                      transition: 'all 0.2s',
                     }}
                   >
                     {i + 1}
@@ -158,7 +198,6 @@ export default function WriteReview({ onClose }: WriteReviewProps) {
             maxHeight: 'calc(90vh - 120px)',
           }}
         >
-          {/* STEP 1: Select Stall */}
           {step === 'stall' && (
             <div>
               <p style={styles.stepLabel}>Select a Stall</p>
@@ -172,87 +211,101 @@ export default function WriteReview({ onClose }: WriteReviewProps) {
                   autoFocus
                 />
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  marginTop: 12,
-                }}
-              >
-                {filteredStalls.map((stall) => (
-                  <div
-                    key={stall.id}
-                    onClick={() => {
-                      setSelectedStall(stall.id)
-                      setSelectedProduct('')
-                      setStep('product')
-                    }}
-                    style={{
-                      ...styles.listItem,
-                      border: `1.5px solid ${selectedStall === stall.id ? '#FF6B2B' : '#F0E6D9'}`,
-                      background:
-                        selectedStall === stall.id ? '#FFF0E6' : '#fff',
-                    }}
-                  >
-                    <img
-                      src={stall.image}
-                      alt={stall.name}
+              {loadingStalls ? (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: '40px 0',
+                    color: '#8B7355',
+                  }}
+                >
+                  <div style={{ fontSize: 28 }}>⏳</div>
+                  <p style={{ marginTop: 8, fontSize: 13 }}>
+                    Loading stalls...
+                  </p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                    marginTop: 12,
+                  }}
+                >
+                  {filteredStalls.map((stall) => (
+                    <div
+                      key={stall._id || stall.id}
+                      onClick={() => selectStall(stall)}
                       style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 10,
-                        objectFit: 'cover',
-                        flexShrink: 0,
-                      }}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: '#1A1208',
-                          fontFamily: 'Syne, sans-serif',
-                        }}
-                      >
-                        {stall.name}
-                      </p>
-                      <p
-                        style={{ fontSize: 12, color: '#8B7355', marginTop: 2 }}
-                      >
-                        📍 {stall.location}
-                      </p>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        color: '#FF6B2B',
-                        fontWeight: 700,
+                        ...styles.listItem,
+                        border: `1.5px solid ${selectedStall?._id === stall._id ? '#FF6B2B' : '#F0E6D9'}`,
+                        background:
+                          selectedStall?._id === stall._id ? '#FFF0E6' : '#fff',
                       }}
                     >
-                      ⭐ {stall.rating}
-                    </span>
-                  </div>
-                ))}
-                {filteredStalls.length === 0 && (
-                  <div
-                    style={{
-                      textAlign: 'center',
-                      padding: '40px 0',
-                      color: '#8B7355',
-                    }}
-                  >
-                    <div style={{ fontSize: 32 }}>🏪</div>
-                    <p style={{ marginTop: 8, fontSize: 13 }}>
-                      No stalls found
-                    </p>
-                  </div>
-                )}
-              </div>
+                      <img
+                        src={stall.image}
+                        alt={stall.name}
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 10,
+                          objectFit: 'cover',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: '#1A1208',
+                            fontFamily: 'Syne, sans-serif',
+                          }}
+                        >
+                          {stall.name}
+                        </p>
+                        <p
+                          style={{
+                            fontSize: 12,
+                            color: '#8B7355',
+                            marginTop: 2,
+                          }}
+                        >
+                          📍 {stall.location}
+                        </p>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: '#FF6B2B',
+                          fontWeight: 700,
+                        }}
+                      >
+                        ⭐ {stall.rating || 'New'}
+                      </span>
+                    </div>
+                  ))}
+                  {filteredStalls.length === 0 && (
+                    <div
+                      style={{
+                        textAlign: 'center',
+                        padding: '40px 0',
+                        color: '#8B7355',
+                      }}
+                    >
+                      <div style={{ fontSize: 32 }}>🏪</div>
+                      <p style={{ marginTop: 8, fontSize: 13 }}>
+                        No stalls found
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {/* STEP 2: Select Product */}
           {step === 'product' && (
             <div>
               <button onClick={() => setStep('stall')} style={styles.backBtn}>
@@ -260,7 +313,7 @@ export default function WriteReview({ onClose }: WriteReviewProps) {
               </button>
               <div style={styles.selectedBanner}>
                 <img
-                  src={currentStall?.image}
+                  src={selectedStall?.image}
                   alt=""
                   style={{
                     width: 36,
@@ -273,15 +326,28 @@ export default function WriteReview({ onClose }: WriteReviewProps) {
                   <p
                     style={{ fontSize: 13, fontWeight: 700, color: '#1A1208' }}
                   >
-                    {currentStall?.name}
+                    {selectedStall?.name}
                   </p>
                   <p style={{ fontSize: 11, color: '#8B7355' }}>
-                    📍 {currentStall?.location}
+                    📍 {selectedStall?.location}
                   </p>
                 </div>
               </div>
               <p style={styles.stepLabel}>Select a Product</p>
-              {stallProducts.length === 0 ? (
+              {loadingProducts ? (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: '40px 0',
+                    color: '#8B7355',
+                  }}
+                >
+                  <div style={{ fontSize: 28 }}>⏳</div>
+                  <p style={{ marginTop: 8, fontSize: 13 }}>
+                    Loading products...
+                  </p>
+                </div>
+              ) : products.length === 0 ? (
                 <div
                   style={{
                     textAlign: 'center',
@@ -309,18 +375,20 @@ export default function WriteReview({ onClose }: WriteReviewProps) {
                     marginTop: 12,
                   }}
                 >
-                  {stallProducts.map((product: any) => (
+                  {products.map((product) => (
                     <div
-                      key={product.id}
+                      key={product._id}
                       onClick={() => {
-                        setSelectedProduct(product.id)
+                        setSelectedProduct(product)
                         setStep('review')
                       }}
                       style={{
                         ...styles.listItem,
-                        border: `1.5px solid ${selectedProduct === product.id ? '#FF6B2B' : '#F0E6D9'}`,
+                        border: `1.5px solid ${selectedProduct?._id === product._id ? '#FF6B2B' : '#F0E6D9'}`,
                         background:
-                          selectedProduct === product.id ? '#FFF0E6' : '#fff',
+                          selectedProduct?._id === product._id
+                            ? '#FFF0E6'
+                            : '#fff',
                       }}
                     >
                       <img
@@ -370,7 +438,6 @@ export default function WriteReview({ onClose }: WriteReviewProps) {
             </div>
           )}
 
-          {/* STEP 3: Write Review */}
           {step === 'review' && (
             <div>
               <button onClick={() => setStep('product')} style={styles.backBtn}>
@@ -378,7 +445,7 @@ export default function WriteReview({ onClose }: WriteReviewProps) {
               </button>
               <div style={styles.selectedBanner}>
                 <img
-                  src={currentProduct?.image}
+                  src={selectedProduct?.image}
                   alt=""
                   style={{
                     width: 36,
@@ -391,14 +458,13 @@ export default function WriteReview({ onClose }: WriteReviewProps) {
                   <p
                     style={{ fontSize: 13, fontWeight: 700, color: '#1A1208' }}
                   >
-                    {currentProduct?.name}
+                    {selectedProduct?.name}
                   </p>
                   <p style={{ fontSize: 11, color: '#8B7355' }}>
-                    from {currentStall?.name}
+                    from {selectedStall?.name}
                   </p>
                 </div>
               </div>
-
               <p style={styles.stepLabel}>Rate this product</p>
               <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -449,11 +515,10 @@ export default function WriteReview({ onClose }: WriteReviewProps) {
                   }
                 </p>
               )}
-
               <p style={styles.stepLabel}>Your Review</p>
               <textarea
                 style={styles.textarea}
-                placeholder="Tell others what you loved (or didn't love) about this product…"
+                placeholder="Tell others what you loved about this product…"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 rows={4}
@@ -469,7 +534,6 @@ export default function WriteReview({ onClose }: WriteReviewProps) {
               >
                 {comment.length}/500
               </p>
-
               <button
                 onClick={handleSubmit}
                 disabled={!rating || !comment.trim()}
@@ -531,11 +595,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#1A1208',
     marginBottom: 8,
   },
-  stepIndicator: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-  },
+  stepIndicator: { display: 'flex', alignItems: 'center', gap: 4 },
   closeBtn: {
     background: '#F0E6D9',
     border: 'none',

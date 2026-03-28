@@ -26,10 +26,27 @@ const StallSchema = new mongoose.Schema({
 const Stall = mongoose.models.Stall || mongoose.model('Stall', StallSchema)
 
 async function seedIfEmpty() {
-  const count = await Stall.countDocuments()
-  if (count === 0) {
-    const { SEED_STALLS } = await import('@/lib/mockData')
-    await Stall.insertMany(SEED_STALLS.map((s) => ({ ...s, seeded: true })))
+  const { SEED_STALLS } = await import('@/lib/mockData')
+  const seedIds = SEED_STALLS.map((s) => s.id)
+
+  // Remove stale seed stalls no longer in SEED_STALLS
+  await Stall.deleteMany({ seeded: true, id: { $nin: seedIds } })
+
+  // Upsert each seed stall — use _id-free filter on the raw collection to avoid strict mode
+  for (const stall of SEED_STALLS) {
+    await Stall.collection.updateOne(
+      { id: stall.id },
+      { $set: { ...stall, seeded: true } },
+      { upsert: true },
+    )
+  }
+
+  // Trigger product seeding
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    await fetch(`${baseUrl}/api/seed-products`)
+  } catch (e) {
+    console.error('Product seed failed:', e)
   }
 }
 

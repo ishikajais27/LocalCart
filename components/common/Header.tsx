@@ -1,5 +1,5 @@
 'use client'
-import { useAuth } from '@/lib/authContext'
+import { useAuth } from '../../lib/authContext'
 import { useRouter } from 'next/navigation'
 
 export default function Header() {

@@ -1,171 +1,486 @@
 'use client'
+import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { STALLS, PRODUCTS } from '@/lib/mockData'
 import Header from '@/components/common/Header'
-import { STALLS, PRODUCTS, TIME_SLOTS } from '@/lib/mockData'
+import Checkout from '@/components/user/Checkout'
 
-export default function StallPage() {
-  const { id } = useParams() as { id: string }
+const VENDOR_STORIES: {
+  [key: string]: {
+    name: string
+    years: string
+    highlight: string
+    story: string
+    stats: { orders: number; rating: number; delivery: string }
+  }
+} = {
+  s1: {
+    name: 'Meera Sharma',
+    years: 'over 8 years',
+    highlight: 'every candle is a little prayer she pours with her own hands.',
+    story:
+      'Meera started making candles in her small flat in Patia after her mother passed — it was a way to keep the warmth alive. What began as grief became her greatest gift to the world. She works late into the night, hand-pouring each candle while her daughter sleeps. Every order you place keeps her studio lit — and her dream burning.',
+    stats: { orders: 124, rating: 4.8, delivery: '2–3 days' },
+  },
+  s2: {
+    name: 'Raj Kumar',
+    years: 'over 15 years',
+    highlight:
+      'his hands have shaped over 10,000 pieces of clay into something the earth is proud of.',
+    story:
+      "Raj learned pottery from his grandfather in a tiny workshop near Jaipur Haat. He moved to Bhubaneswar with nothing but a wheel and a dream. Every mug, every vase carries the fingerprints of a man who chose craft over comfort. When you hold one of his pieces, you're holding a piece of his story.",
+    stats: { orders: 89, rating: 4.6, delivery: '3–5 days' },
+  },
+  s3: {
+    name: 'Priya Kapoor',
+    years: 'over 6 years',
+    highlight:
+      'she believes every woman deserves to wear something made just for her.',
+    story:
+      "Priya quit her corporate job to follow the only thing that ever made her truly happy — making jewellery. She works from a tiny table in IRC Village, surrounded by beads, wire, and dreams. Her pieces aren't just accessories; they're conversations. Each one is made to be worn by someone who knows their own worth.",
+    stats: { orders: 203, rating: 4.9, delivery: '1–2 days' },
+  },
+  s4: {
+    name: 'Arjun Sahoo',
+    years: 'over 12 years',
+    highlight:
+      'his recipes have not changed — because some things are already perfect.',
+    story:
+      "Arjun's father ran a chaat stall in Chandni Chowk. When he passed, Arjun carried the recipes in his heart all the way to Bhubaneswar. His food isn't just street food — it's memory, served hot. Locals queue before he even sets up. Every bite is decades of love and a son's promise kept.",
+    stats: { orders: 512, rating: 4.7, delivery: '45 min' },
+  },
+  s5: {
+    name: 'Sunita Das',
+    years: 'over 10 years',
+    highlight: 'she paints the world she wishes more people could see.',
+    story:
+      'Sunita grew up in a small village outside Bhubaneswar, where she drew on anything she could find — newspaper margins, mud walls, scraps of fabric. Today, her watercolors hang in homes across the country. She still paints at dawn, before the world gets too loud, capturing light that most people sleep through.',
+    stats: { orders: 67, rating: 4.5, delivery: '5–7 days' },
+  },
+  s6: {
+    name: 'Deepa Mohanty',
+    years: 'over 5 years',
+    highlight: 'she talks to every plant before she sends it to its new home.',
+    story:
+      'Deepa started her plant nursery on a terrace in Niladri Vihar with 12 plants and a watering can. Now she tends to over 300 varieties. She says plants teach patience — something she also learned raising her two kids alone. Each plant she packs comes with a hand-written care note. Because growing things takes love, not just water.',
+    stats: { orders: 44, rating: 4.4, delivery: '1 day' },
+  },
+}
+
+interface CartItem {
+  productId: string
+  name: string
+  price: number
+  qty: number
+  variant?: string
+  image: string
+  stallName: string
+}
+
+export default function VendorDetailPage() {
+  const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const stall = STALLS.find((s) => s.id === id)
   const products = PRODUCTS[id] || []
+  const story = VENDOR_STORIES[id]
+  const [cart, setCart] = useState<Record<string, number>>({})
+  const [selectedVariants, setSelectedVariants] = useState<
+    Record<string, string>
+  >({})
+  const [showCheckout, setShowCheckout] = useState(false)
+  const [orderSuccess, setOrderSuccess] = useState(false)
 
-  const [selected, setSelected] = useState<any>(null)
-  const [variant, setVariant] = useState('')
-  const [orderType, setOrderType] = useState<'immediate' | 'preorder'>(
-    'immediate',
-  )
-  const [slot, setSlot] = useState(TIME_SLOTS[0])
-  const [qty, setQty] = useState(1)
-  const [ordered, setOrdered] = useState(false)
-
-  if (!stall)
+  if (!stall || !story) {
     return (
-      <div style={{ padding: 40, textAlign: 'center' }}>Stall not found</div>
+      <div
+        style={{
+          minHeight: '100vh',
+          background: '#FFF8F0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 48 }}>🏪</div>
+          <p style={{ color: '#8B7355', marginTop: 12 }}>Stall not found.</p>
+          <button onClick={() => router.push('/search')} style={styles.backBtn}>
+            ← Back to Search
+          </button>
+        </div>
+      </div>
     )
-
-  const openModal = (p: any) => {
-    setSelected(p)
-    setVariant(p.variants[0] || '')
-    setQty(1)
-    setOrdered(false)
   }
-  const placeOrder = () => {
-    setOrdered(true)
-    setTimeout(() => {
-      setSelected(null)
-      setOrdered(false)
-    }, 2000)
+
+  const addToCart = (productId: string) => {
+    setCart((c) => ({ ...c, [productId]: (c[productId] || 0) + 1 }))
+  }
+
+  const removeFromCart = (productId: string) => {
+    setCart((c) => {
+      const next = { ...c }
+      if (next[productId] > 1) next[productId]--
+      else delete next[productId]
+      return next
+    })
+  }
+
+  const totalItems = Object.values(cart).reduce((a, b) => a + b, 0)
+  const totalPrice = Object.entries(cart).reduce((sum, [pid, qty]) => {
+    const p = products.find((x: any) => x.id === pid)
+    return sum + (p ? p.price * qty : 0)
+  }, 0)
+
+  const buildCartItems = (): CartItem[] => {
+    return Object.entries(cart)
+      .filter(([, qty]) => qty > 0)
+      .map(([pid, qty]) => {
+        const p = products.find((x: any) => x.id === pid)
+        return {
+          productId: pid,
+          name: p?.name || '',
+          price: p?.price || 0,
+          qty,
+          variant: selectedVariants[pid],
+          image: p?.image || '',
+          stallName: stall.name,
+        }
+      })
+  }
+
+  const handleCheckoutSuccess = () => {
+    setShowCheckout(false)
+    setOrderSuccess(true)
+    setCart({})
+    setSelectedVariants({})
+  }
+
+  if (orderSuccess) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: '#FFF8F0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: 'DM Sans, sans-serif',
+        }}
+      >
+        <div style={{ textAlign: 'center', padding: '40px 24px' }}>
+          <div style={{ fontSize: 72, marginBottom: 16 }}>🎉</div>
+          <h2
+            style={{
+              fontFamily: 'Syne, sans-serif',
+              fontSize: 28,
+              fontWeight: 800,
+              color: '#1A1208',
+              marginBottom: 8,
+            }}
+          >
+            Order Placed!
+          </h2>
+          <p
+            style={{
+              fontSize: 15,
+              color: '#8B7355',
+              marginBottom: 8,
+              lineHeight: 1.7,
+            }}
+          >
+            Your order from{' '}
+            <strong style={{ color: '#FF6B2B' }}>{stall.name}</strong> has been
+            placed successfully.
+          </p>
+          <p style={{ fontSize: 13, color: '#C4A882', marginBottom: 32 }}>
+            {story.name.split(' ')[0]} will get to work on it right away 🙏
+          </p>
+          <button
+            onClick={() => {
+              setOrderSuccess(false)
+              router.push('/search')
+            }}
+            style={{
+              background: '#FF6B2B',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 14,
+              padding: '14px 32px',
+              fontSize: 15,
+              fontWeight: 800,
+              cursor: 'pointer',
+              fontFamily: 'Syne, sans-serif',
+            }}
+          >
+            Explore More Stalls
+          </button>
+          <div style={{ marginTop: 16 }}>
+            <button
+              onClick={() => setOrderSuccess(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#8B7355',
+                fontSize: 13,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Back to {stall.name}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#FFF8F0' }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#FFF8F0',
+        fontFamily: 'DM Sans, sans-serif',
+      }}
+    >
       <Header />
 
-      <div style={styles.banner}>
-        <img src={stall.image} alt={stall.name} style={styles.bannerImg} />
-        <div style={styles.bannerOverlay} />
-        <div style={styles.bannerContent}>
-          <button onClick={() => router.back()} style={styles.backBtn}>
+      {/* Hero Banner */}
+      <div style={{ position: 'relative', height: 320, overflow: 'hidden' }}>
+        <img
+          src={stall.image}
+          alt={stall.name}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'linear-gradient(to bottom, rgba(26,18,8,0.2) 0%, rgba(26,18,8,0.75) 100%)',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: '24px 32px',
+          }}
+        >
+          <button
+            onClick={() => router.push('/search')}
+            style={styles.backBtnWhite}
+          >
             ← Back
           </button>
-          <div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'space-between',
+              marginTop: 12,
+            }}
+          >
+            <div>
+              <h1 style={styles.stallTitle}>{stall.name}</h1>
+              <p style={styles.stallLocation}>
+                📍 {stall.location} · {stall.distance}
+              </p>
+            </div>
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                marginBottom: 8,
+                background: stall.isOpen ? '#dcfce7' : '#fee2e2',
+                color: stall.isOpen ? '#16a34a' : '#dc2626',
+                fontWeight: 700,
+                fontSize: 13,
+                padding: '6px 14px',
+                borderRadius: 20,
               }}
             >
-              <h1 style={styles.stallName}>{stall.name}</h1>
-              <span
-                style={{
-                  background: stall.isOpen ? '#dcfce7' : '#fee2e2',
-                  color: stall.isOpen ? '#16a34a' : '#dc2626',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: '3px 10px',
-                  borderRadius: 20,
-                }}
-              >
-                {stall.isOpen ? '● Open' : '● Closed'}
-              </span>
+              {stall.isOpen ? '● Open Now' : '● Closed'}
             </div>
-            <p style={styles.stallInfo}>
-              📍 {stall.location} · {stall.distance} · ⭐ {stall.rating} (
-              {stall.reviewCount} reviews)
-            </p>
-            <p style={styles.stallInfo}>
-              🕐 Delivery: {stall.deliveryTime} · Min order: ₹{stall.minOrder}
-            </p>
           </div>
         </div>
       </div>
 
       <div style={styles.container}>
-        <h2 style={styles.sectionTitle}>What's available 🛍️</h2>
-        <div style={styles.productGrid}>
+        {/* Story Section */}
+        <div style={styles.storyCard}>
+          <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+            <div style={styles.avatarWrap}>
+              <img src={stall.image} alt={story.name} style={styles.avatar} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={styles.storyText}>
+                <strong style={{ color: '#1A1208' }}>{story.name}</strong> has
+                been crafting{' '}
+                <span style={{ color: '#FF6B2B', fontWeight: 600 }}>
+                  for {story.years}
+                </span>{' '}
+                — {story.highlight}
+              </p>
+              <p
+                style={{
+                  fontSize: 14,
+                  color: '#6B5744',
+                  lineHeight: 1.8,
+                  marginTop: 8,
+                }}
+              >
+                {story.story}
+              </p>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: '#FF6B2B',
+                  fontWeight: 700,
+                  marginTop: 10,
+                  lineHeight: 1.6,
+                }}
+              >
+                Every order you place{' '}
+                <span style={{ textDecoration: 'underline' }}>
+                  goes directly to {story.name.split(' ')[0]} and her family.
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Row */}
+        <div style={styles.statsRow}>
+          <div style={styles.statBox}>
+            <div style={styles.statNumber}>{story.stats.orders}</div>
+            <div style={styles.statLabel}>Orders done</div>
+          </div>
+          <div style={styles.statDivider} />
+          <div style={styles.statBox}>
+            <div style={styles.statNumber}>{story.stats.rating}★</div>
+            <div style={styles.statLabel}>Avg rating</div>
+          </div>
+          <div style={styles.statDivider} />
+          <div style={styles.statBox}>
+            <div style={styles.statNumber}>{story.stats.delivery}</div>
+            <div style={styles.statLabel}>Delivery time</div>
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            flexWrap: 'wrap',
+            marginBottom: 28,
+          }}
+        >
+          {stall.tags.map((t: string) => (
+            <span key={t} style={styles.tag}>
+              {t}
+            </span>
+          ))}
+        </div>
+
+        {/* Products */}
+        <h2 style={styles.sectionTitle}>Products</h2>
+        <div style={styles.productsGrid}>
           {products.map((p: any) => (
-            <div
-              key={p.id}
-              className="card"
-              style={{ cursor: 'pointer' }}
-              onClick={() => openModal(p)}
-            >
-              <div style={{ position: 'relative', height: 160 }}>
+            <div key={p.id} style={styles.productCard}>
+              <div
+                style={{
+                  position: 'relative',
+                  height: 180,
+                  overflow: 'hidden',
+                  borderRadius: '12px 12px 0 0',
+                }}
+              >
                 <img
                   src={p.image}
                   alt={p.name}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
                 {p.originalPrice && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: 8,
-                      left: 8,
-                      background: '#FF6B2B',
-                      color: '#fff',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      padding: '3px 8px',
-                      borderRadius: 6,
-                    }}
-                  >
+                  <div style={styles.discountBadge}>
                     {Math.round((1 - p.price / p.originalPrice) * 100)}% OFF
-                  </span>
+                  </div>
                 )}
               </div>
-              <div style={{ padding: '12px 14px' }}>
-                <h3
-                  style={{
-                    fontFamily: 'Syne, sans-serif',
-                    fontSize: 15,
-                    fontWeight: 700,
-                    marginBottom: 4,
-                    color: '#1A1208',
-                  }}
-                >
-                  {p.name}
-                </h3>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: '#8B7355',
-                    marginBottom: 10,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {p.description}
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span
-                    style={{ fontWeight: 800, fontSize: 18, color: '#1A1208' }}
-                  >
-                    ₹{p.price}
-                  </span>
-                  {p.originalPrice && (
-                    <span
-                      style={{
-                        fontSize: 13,
-                        color: '#C4A882',
-                        textDecoration: 'line-through',
-                      }}
-                    >
-                      ₹{p.originalPrice}
-                    </span>
-                  )}
-                  <button
-                    className="btn-primary"
+              <div style={{ padding: '14px 16px' }}>
+                <h3 style={styles.productName}>{p.name}</h3>
+                <p style={styles.productDesc}>{p.description}</p>
+
+                {p.variants && p.variants.length > 0 && (
+                  <div
                     style={{
-                      marginLeft: 'auto',
-                      padding: '6px 14px',
-                      fontSize: 13,
+                      display: 'flex',
+                      gap: 6,
+                      flexWrap: 'wrap',
+                      marginBottom: 12,
                     }}
                   >
-                    Order
-                  </button>
+                    {p.variants.map((v: string) => (
+                      <span
+                        key={v}
+                        onClick={() =>
+                          setSelectedVariants((sv) => ({ ...sv, [p.id]: v }))
+                        }
+                        style={{
+                          ...styles.variantChip,
+                          background:
+                            selectedVariants[p.id] === v
+                              ? '#FF6B2B'
+                              : '#F0E6D9',
+                          color:
+                            selectedVariants[p.id] === v ? '#fff' : '#8B7355',
+                        }}
+                      >
+                        {v}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: 8,
+                  }}
+                >
+                  <div>
+                    <span style={styles.price}>₹{p.price}</span>
+                    {p.originalPrice && (
+                      <span style={styles.originalPrice}>
+                        ₹{p.originalPrice}
+                      </span>
+                    )}
+                  </div>
+                  {cart[p.id] ? (
+                    <div style={styles.qtyControl}>
+                      <button
+                        onClick={() => removeFromCart(p.id)}
+                        style={styles.qtyBtn}
+                      >
+                        −
+                      </button>
+                      <span style={styles.qtyNum}>{cart[p.id]}</span>
+                      <button
+                        onClick={() => addToCart(p.id)}
+                        style={styles.qtyBtn}
+                      >
+                        +
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => addToCart(p.id)}
+                      style={styles.addBtn}
+                    >
+                      + Add
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -173,320 +488,255 @@ export default function StallPage() {
         </div>
       </div>
 
-      {selected && (
-        <div style={styles.modalBg} onClick={() => setSelected(null)}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            {ordered ? (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ fontSize: 56 }}>✅</div>
-                <h3
-                  style={{
-                    fontFamily: 'Syne, sans-serif',
-                    fontSize: 24,
-                    fontWeight: 800,
-                    color: '#1A1208',
-                    margin: '16px 0 8px',
-                  }}
-                >
-                  Order Placed!
-                </h3>
-                <p style={{ color: '#8B7355' }}>
-                  The vendor will prepare your order shortly.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', gap: 14, marginBottom: 20 }}>
-                  <img
-                    src={selected.image}
-                    alt={selected.name}
-                    style={{
-                      width: 90,
-                      height: 90,
-                      borderRadius: 12,
-                      objectFit: 'cover',
-                      flexShrink: 0,
-                    }}
-                  />
-                  <div>
-                    <h3
-                      style={{
-                        fontFamily: 'Syne, sans-serif',
-                        fontSize: 18,
-                        fontWeight: 700,
-                        marginBottom: 4,
-                        color: '#1A1208',
-                      }}
-                    >
-                      {selected.name}
-                    </h3>
-                    <p
-                      style={{
-                        color: '#8B7355',
-                        fontSize: 13,
-                        marginBottom: 8,
-                      }}
-                    >
-                      {selected.description}
-                    </p>
-                    <span
-                      style={{
-                        fontWeight: 800,
-                        fontSize: 18,
-                        color: '#1A1208',
-                      }}
-                    >
-                      ₹{selected.price}
-                    </span>
-                    {selected.originalPrice && (
-                      <span
-                        style={{
-                          fontSize: 13,
-                          color: '#C4A882',
-                          textDecoration: 'line-through',
-                          marginLeft: 8,
-                        }}
-                      >
-                        ₹{selected.originalPrice}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {selected.variants.length > 0 && (
-                  <div style={styles.field}>
-                    <label style={styles.label}>Variant</label>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {selected.variants.map((v: string) => (
-                        <button
-                          key={v}
-                          onClick={() => setVariant(v)}
-                          style={{
-                            padding: '6px 14px',
-                            borderRadius: 8,
-                            fontSize: 13,
-                            cursor: 'pointer',
-                            border: `2px solid ${variant === v ? '#FF6B2B' : '#F0E6D9'}`,
-                            background: variant === v ? '#FFF0E6' : '#fff',
-                            color: variant === v ? '#FF6B2B' : '#1A1208',
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontWeight: 600,
-                          }}
-                        >
-                          {v}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div style={styles.field}>
-                  <label style={styles.label}>Quantity</label>
-                  <div
-                    style={{ display: 'flex', alignItems: 'center', gap: 12 }}
-                  >
-                    <button
-                      onClick={() => setQty(Math.max(1, qty - 1))}
-                      style={styles.qtyBtn}
-                    >
-                      −
-                    </button>
-                    <span
-                      style={{
-                        fontSize: 18,
-                        fontWeight: 700,
-                        minWidth: 24,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {qty}
-                    </span>
-                    <button
-                      onClick={() => setQty(qty + 1)}
-                      style={styles.qtyBtn}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                <div style={styles.field}>
-                  <label style={styles.label}>Order Type</label>
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    {(['immediate', 'preorder'] as const).map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => setOrderType(t)}
-                        style={{
-                          flex: 1,
-                          padding: '10px',
-                          borderRadius: 10,
-                          cursor: 'pointer',
-                          fontSize: 13,
-                          border: `2px solid ${orderType === t ? '#FF6B2B' : '#F0E6D9'}`,
-                          background: orderType === t ? '#FFF0E6' : '#fff',
-                          color: orderType === t ? '#FF6B2B' : '#1A1208',
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontWeight: 600,
-                        }}
-                      >
-                        {t === 'immediate' ? '⚡ Immediate' : '📅 Pre-Order'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={styles.field}>
-                  <label style={styles.label}>Delivery Slot</label>
-                  <select
-                    value={slot}
-                    onChange={(e) => setSlot(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '11px 14px',
-                      border: '2px solid #F0E6D9',
-                      borderRadius: 10,
-                      fontSize: 14,
-                      fontFamily: 'DM Sans, sans-serif',
-                      color: '#1A1208',
-                      background: '#fff',
-                      outline: 'none',
-                    }}
-                  >
-                    {TIME_SLOTS.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '16px 0',
-                    borderTop: '1px solid #F0E6D9',
-                    marginBottom: 16,
-                    fontFamily: 'Syne, sans-serif',
-                    fontWeight: 700,
-                    fontSize: 16,
-                    color: '#1A1208',
-                  }}
-                >
-                  <span>Total</span>
-                  <span
-                    style={{ color: '#FF6B2B', fontWeight: 800, fontSize: 20 }}
-                  >
-                    ₹{selected.price * qty}
-                  </span>
-                </div>
-
-                <button
-                  className="btn-primary"
-                  style={{ width: '100%', justifyContent: 'center' }}
-                  onClick={placeOrder}
-                >
-                  Place Order →
-                </button>
-              </>
-            )}
+      {/* Floating Cart */}
+      {totalItems > 0 && (
+        <div style={styles.floatingCart}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={styles.cartBadge}>{totalItems}</div>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>
+              {totalItems} item{totalItems > 1 ? 's' : ''} in cart
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>
+              ₹{totalPrice}
+            </span>
+            <button
+              style={styles.checkoutBtn}
+              onClick={() => setShowCheckout(true)}
+            >
+              Checkout →
+            </button>
           </div>
         </div>
+      )}
+
+      {/* Checkout Modal */}
+      {showCheckout && (
+        <Checkout
+          cart={buildCartItems()}
+          stallName={stall.name}
+          stallCategory={(stall as any).category || 'default'}
+          onClose={() => setShowCheckout(false)}
+          onSuccess={handleCheckoutSuccess}
+        />
       )}
     </div>
   )
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  banner: { position: 'relative', height: 280, overflow: 'hidden' },
-  bannerImg: { width: '100%', height: '100%', objectFit: 'cover' },
-  bannerOverlay: {
-    position: 'absolute',
-    inset: 0,
-    background:
-      'linear-gradient(to top, rgba(26,18,8,0.85) 0%, transparent 50%)',
-  },
-  bannerContent: {
-    position: 'absolute',
-    inset: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    padding: '20px 28px',
-  },
+  container: { maxWidth: 900, margin: '0 auto', padding: '28px 24px 100px' },
   backBtn: {
-    alignSelf: 'flex-start',
+    background: 'none',
+    border: '1px solid #F0E6D9',
+    borderRadius: 8,
+    color: '#8B7355',
+    cursor: 'pointer',
+    fontSize: 14,
+    padding: '8px 16px',
+    marginTop: 12,
+  },
+  backBtnWhite: {
     background: 'rgba(255,255,255,0.15)',
     border: '1px solid rgba(255,255,255,0.3)',
-    color: '#fff',
-    padding: '7px 16px',
     borderRadius: 8,
+    color: '#fff',
     cursor: 'pointer',
     fontSize: 13,
-    fontFamily: 'DM Sans, sans-serif',
-    backdropFilter: 'blur(8px)',
+    padding: '6px 14px',
   },
-  stallName: {
+  stallTitle: {
     fontFamily: 'Syne, sans-serif',
     fontSize: 28,
     fontWeight: 800,
     color: '#fff',
+    marginBottom: 4,
   },
-  stallInfo: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 4 },
-  container: { maxWidth: 1200, margin: '0 auto', padding: '28px 24px 48px' },
-  sectionTitle: {
+  stallLocation: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
+  storyCard: {
+    background: '#fff',
+    borderRadius: 16,
+    padding: '24px',
+    border: '1px solid #F0E6D9',
+    marginBottom: 0,
+    borderLeft: '4px solid #FF6B2B',
+  },
+  avatarWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: '50%',
+    overflow: 'hidden',
+    flexShrink: 0,
+    border: '3px solid #FF6B2B',
+  },
+  avatar: { width: '100%', height: '100%', objectFit: 'cover' },
+  storyText: { fontSize: 15, color: '#3D2A10', lineHeight: 1.75 },
+  statsRow: {
+    display: 'flex',
+    background: '#fff',
+    borderRadius: 14,
+    border: '1px solid #F0E6D9',
+    margin: '20px 0 24px',
+    overflow: 'hidden',
+  },
+  statBox: { flex: 1, padding: '20px 16px', textAlign: 'center' },
+  statNumber: {
     fontFamily: 'Syne, sans-serif',
     fontSize: 22,
-    fontWeight: 700,
-    marginBottom: 20,
-    color: '#1A1208',
+    fontWeight: 800,
+    color: '#FF6B2B',
+    marginBottom: 4,
   },
-  productGrid: {
+  statLabel: { fontSize: 12, color: '#8B7355', fontWeight: 500 },
+  statDivider: { width: 1, background: '#F0E6D9', margin: '12px 0' },
+  tag: {
+    background: '#FFF0E6',
+    color: '#FF6B2B',
+    border: '1px solid rgba(255,107,43,0.2)',
+    borderRadius: 20,
+    padding: '4px 12px',
+    fontSize: 12,
+    fontWeight: 500,
+  },
+  sectionTitle: {
+    fontFamily: 'Syne, sans-serif',
+    fontSize: 20,
+    fontWeight: 800,
+    color: '#1A1208',
+    marginBottom: 16,
+  },
+  productsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
     gap: 20,
   },
-  modalBg: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(26,18,8,0.6)',
-    zIndex: 200,
-    display: 'flex',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    backdropFilter: 'blur(4px)',
-  },
-  modal: {
+  productCard: {
     background: '#fff',
-    borderRadius: '20px 20px 0 0',
-    padding: '28px 24px 40px',
-    width: '100%',
-    maxWidth: 520,
-    maxHeight: '90vh',
-    overflowY: 'auto',
+    borderRadius: 14,
+    border: '1px solid #F0E6D9',
+    overflow: 'hidden',
+    boxShadow: '0 2px 12px rgba(26,18,8,0.05)',
   },
-  field: { marginBottom: 18 },
-  label: {
-    display: 'block',
-    fontSize: 13,
+  discountBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    background: '#FF6B2B',
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 700,
+    padding: '3px 8px',
+    borderRadius: 6,
+  },
+  productName: {
+    fontFamily: 'Syne, sans-serif',
+    fontSize: 15,
     fontWeight: 700,
     color: '#1A1208',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
+    marginBottom: 4,
+  },
+  productDesc: {
+    fontSize: 12,
+    color: '#8B7355',
+    marginBottom: 10,
+    lineHeight: 1.5,
+  },
+  variantChip: {
+    fontSize: 11,
+    fontWeight: 600,
+    padding: '4px 10px',
+    borderRadius: 20,
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  },
+  price: {
+    fontFamily: 'Syne, sans-serif',
+    fontSize: 17,
+    fontWeight: 800,
+    color: '#1A1208',
+  },
+  originalPrice: {
+    fontSize: 12,
+    color: '#C4A882',
+    textDecoration: 'line-through',
+    marginLeft: 6,
+  },
+  addBtn: {
+    background: '#FF6B2B',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 8,
+    padding: '7px 16px',
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  qtyControl: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    background: '#FFF0E6',
+    borderRadius: 8,
+    padding: '4px 8px',
   },
   qtyBtn: {
-    width: 36,
-    height: 36,
-    border: '2px solid #F0E6D9',
-    borderRadius: 8,
-    background: '#fff',
-    fontSize: 20,
+    background: '#FF6B2B',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    width: 26,
+    height: 26,
+    fontSize: 16,
+    fontWeight: 700,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  qtyNum: {
+    fontWeight: 700,
+    fontSize: 15,
+    color: '#1A1208',
+    minWidth: 16,
+    textAlign: 'center',
+  },
+  floatingCart: {
+    position: 'fixed',
+    bottom: 20,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: '#1A1208',
+    borderRadius: 16,
+    padding: '14px 24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 24,
+    boxShadow: '0 8px 32px rgba(26,18,8,0.35)',
+    minWidth: 340,
+    zIndex: 200,
+  },
+  cartBadge: {
+    background: '#FF6B2B',
+    color: '#fff',
+    borderRadius: '50%',
+    width: 24,
+    height: 24,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 12,
+    fontWeight: 800,
+  },
+  checkoutBtn: {
+    background: '#FF6B2B',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 10,
+    padding: '8px 20px',
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: 'pointer',
   },
 }

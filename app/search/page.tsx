@@ -1,101 +1,25 @@
 'use client'
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '../../lib/authContext'
-import Header from '@/components/common/Header'
-import CategoryPills from '@/components/common/CategoryPills'
-import VendorCard from '@/components/user/VendorCard'
-import { BBSR_LOCATIONS } from '@/lib/mockData'
+import UserHeader from '@/components/user/UserHeader'
 import { getAllStalls } from '@/lib/stallsStore'
-
-const POPULAR_SEARCHES = [
-  'Candles',
-  'Momos',
-  'Saree',
-  'Plants',
-  'Jewellery',
-  'Pottery',
-  'Art',
-  'Chaat',
-]
+import { CATEGORIES } from '@/lib/mockData'
 
 export default function SearchPage() {
-  const { user, loading } = useAuth()
   const router = useRouter()
   const [query, setQuery] = useState('')
-  const [location, setLocation] = useState('KIIT Campus, Patia')
-  const [locationInput, setLocationInput] = useState('')
-  const [showLocDrop, setShowLocDrop] = useState(false)
-  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false)
   const [category, setCategory] = useState('all')
-  const [allStalls, setAllStalls] = useState<any[]>([])
-  const locRef = useRef<HTMLDivElement>(null)
-  const searchRef = useRef<HTMLDivElement>(null)
+  const allStalls = getAllStalls()
 
-  useEffect(() => {
-    if (!loading && !user) router.push('/account')
-    if (!loading && user?.role === 'vendor') router.push('/vendors')
-  }, [user, loading, router])
-
-  useEffect(() => {
-    setAllStalls(getAllStalls())
-  }, [])
-
-  // Close dropdowns on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (locRef.current && !locRef.current.contains(e.target as Node))
-        setShowLocDrop(false)
-      if (searchRef.current && !searchRef.current.contains(e.target as Node))
-        setShowSearchSuggestions(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  const filteredLocations = useMemo(
-    () =>
-      locationInput.trim() === ''
-        ? BBSR_LOCATIONS
-        : BBSR_LOCATIONS.filter((l) =>
-            l.label.toLowerCase().includes(locationInput.toLowerCase()),
-          ),
-    [locationInput],
-  )
-
-  const selectedLocId = BBSR_LOCATIONS.find((l) => l.label === location)?.id
-
-  const filtered = useMemo(
-    () =>
-      allStalls.filter((s) => {
-        const locMatch = !selectedLocId || s.locationId === selectedLocId
-        const catMatch = category === 'all' || s.category === category
-        const q = query.toLowerCase().trim()
-        const qMatch =
-          !q ||
-          s.name.toLowerCase().includes(q) ||
-          s.tags?.some((t: string) => t.toLowerCase().includes(q)) ||
-          s.category.toLowerCase().includes(q)
-        return locMatch && catMatch && qMatch
-      }),
-    [query, category, selectedLocId, allStalls],
-  )
-
-  // Search suggestions from stall names + tags
-  const suggestions = useMemo(() => {
-    if (!query.trim()) return []
-    const q = query.toLowerCase()
-    const hits = new Set<string>()
-    allStalls.forEach((s) => {
-      if (s.name.toLowerCase().includes(q)) hits.add(s.name)
-      s.tags?.forEach((t: string) => {
-        if (t.toLowerCase().includes(q)) hits.add(t)
-      })
-    })
-    return Array.from(hits).slice(0, 6)
-  }, [query, allStalls])
-
-  if (loading) return null
+  const filtered = allStalls.filter((s) => {
+    const matchCat = category === 'all' || s.category === category
+    const matchQ =
+      !query ||
+      s.name.toLowerCase().includes(query.toLowerCase()) ||
+      s.location.toLowerCase().includes(query.toLowerCase()) ||
+      s.tags?.some((t: string) => t.toLowerCase().includes(query.toLowerCase()))
+    return matchCat && matchQ
+  })
 
   return (
     <div
@@ -105,469 +29,246 @@ export default function SearchPage() {
         fontFamily: 'DM Sans, sans-serif',
       }}
     >
-      <Header />
+      <UserHeader />
 
-      {/* Sticky Search Header */}
-      <div style={styles.stickySearch}>
-        {/* Location Row */}
-        <div ref={locRef} style={{ position: 'relative', marginBottom: 10 }}>
-          <div
-            onClick={() => {
-              setShowLocDrop((v) => !v)
-              setLocationInput('')
+      {/* Hero */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #FF6B2B 0%, #e85d20 100%)',
+          padding: '40px 24px 32px',
+        }}
+      >
+        <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
+          <h1
+            style={{
+              fontFamily: 'Syne, sans-serif',
+              fontSize: 30,
+              fontWeight: 800,
+              color: '#fff',
+              marginBottom: 8,
             }}
-            style={styles.locationBar}
           >
-            <span style={{ fontSize: 18, color: '#FF6B2B' }}>📍</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: '#8B7355',
-                  fontWeight: 500,
-                  lineHeight: 1,
-                }}
-              >
-                Delivering to
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: '#1A1208',
-                  marginTop: 1,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {location}
-              </div>
-            </div>
-            <span
-              style={{
-                color: '#FF6B2B',
-                fontSize: 18,
-                fontWeight: 700,
-                flexShrink: 0,
-              }}
-            >
-              ⌄
-            </span>
-          </div>
-
-          {showLocDrop && (
-            <div style={styles.locDropdown}>
-              <div style={styles.locSearchWrap}>
-                <span style={{ fontSize: 16, color: '#C4A882' }}>🔍</span>
-                <input
-                  autoFocus
-                  placeholder="Search area or locality..."
-                  value={locationInput}
-                  onChange={(e) => setLocationInput(e.target.value)}
-                  style={styles.locInput}
-                />
-                {locationInput && (
-                  <span
-                    onClick={() => setLocationInput('')}
-                    style={{
-                      color: '#8B7355',
-                      cursor: 'pointer',
-                      fontSize: 13,
-                    }}
-                  >
-                    ✕
-                  </span>
-                )}
-              </div>
-              <div style={{ maxHeight: 260, overflowY: 'auto' }}>
-                {filteredLocations.length === 0 ? (
-                  <div
-                    style={{
-                      padding: '16px',
-                      fontSize: 13,
-                      color: '#8B7355',
-                      textAlign: 'center',
-                    }}
-                  >
-                    No areas found
-                  </div>
-                ) : (
-                  filteredLocations.map((loc) => (
-                    <div
-                      key={loc.id}
-                      onClick={() => {
-                        setLocation(loc.label)
-                        setShowLocDrop(false)
-                        setLocationInput('')
-                      }}
-                      style={{
-                        ...styles.locOption,
-                        background:
-                          loc.label === location ? '#FFF0E6' : 'transparent',
-                      }}
-                      onMouseEnter={(e) => {
-                        ;(e.currentTarget as HTMLDivElement).style.background =
-                          '#FFF8F0'
-                      }}
-                      onMouseLeave={(e) => {
-                        ;(e.currentTarget as HTMLDivElement).style.background =
-                          loc.label === location ? '#FFF0E6' : 'transparent'
-                      }}
-                    >
-                      <span style={{ fontSize: 16, flexShrink: 0 }}>📍</span>
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: loc.label === location ? 700 : 500,
-                            color:
-                              loc.label === location ? '#FF6B2B' : '#1A1208',
-                          }}
-                        >
-                          {loc.area}
-                        </div>
-                        <div style={{ fontSize: 11, color: '#8B7355' }}>
-                          {loc.label}
-                        </div>
-                      </div>
-                      {loc.label === location && (
-                        <span
-                          style={{
-                            marginLeft: 'auto',
-                            color: '#FF6B2B',
-                            fontSize: 14,
-                          }}
-                        >
-                          ✓
-                        </span>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Search Bar */}
-        <div ref={searchRef} style={{ position: 'relative' }}>
-          <div style={styles.searchBox}>
-            <span style={{ fontSize: 18, color: '#C4A882', flexShrink: 0 }}>
-              🔍
-            </span>
+            Discover Local Stalls 🛍️
+          </h1>
+          <p
+            style={{
+              color: 'rgba(255,255,255,0.85)',
+              fontSize: 14,
+              marginBottom: 24,
+            }}
+          >
+            Handmade, homegrown, and just around the corner.
+          </p>
+          {/* Search Bar */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              background: '#fff',
+              borderRadius: 14,
+              padding: '12px 18px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+            }}
+          >
+            <span style={{ fontSize: 18, color: '#C4A882' }}>🔍</span>
             <input
-              style={styles.searchInput}
-              placeholder='Search "candles", "momos", "saree"…'
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value)
-                setShowSearchSuggestions(true)
+              style={{
+                border: 'none',
+                outline: 'none',
+                fontSize: 15,
+                fontFamily: 'DM Sans, sans-serif',
+                flex: 1,
+                color: '#1A1208',
+                background: 'transparent',
               }}
-              onFocus={() => setShowSearchSuggestions(true)}
+              placeholder="Search stalls, products, categories…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
             />
             {query && (
               <span
-                onClick={() => {
-                  setQuery('')
-                  setShowSearchSuggestions(false)
-                }}
-                style={styles.clearBtn}
+                style={{ color: '#8B7355', cursor: 'pointer', fontSize: 14 }}
+                onClick={() => setQuery('')}
               >
                 ✕
               </span>
             )}
           </div>
-
-          {/* Suggestions Dropdown */}
-          {showSearchSuggestions && (query ? suggestions.length > 0 : true) && (
-            <div style={styles.suggestDrop}>
-              {!query && (
-                <>
-                  <div style={styles.suggestLabel}>Popular Searches</div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: 8,
-                      padding: '0 14px 12px',
-                    }}
-                  >
-                    {POPULAR_SEARCHES.map((s) => (
-                      <span
-                        key={s}
-                        onClick={() => {
-                          setQuery(s)
-                          setShowSearchSuggestions(false)
-                        }}
-                        style={styles.popularChip}
-                      >
-                        🔥 {s}
-                      </span>
-                    ))}
-                  </div>
-                </>
-              )}
-              {query &&
-                suggestions.map((s, i) => (
-                  <div
-                    key={i}
-                    onClick={() => {
-                      setQuery(s)
-                      setShowSearchSuggestions(false)
-                    }}
-                    style={styles.suggestRow}
-                    onMouseEnter={(e) =>
-                      ((e.currentTarget as HTMLDivElement).style.background =
-                        '#FFF8F0')
-                    }
-                    onMouseLeave={(e) =>
-                      ((e.currentTarget as HTMLDivElement).style.background =
-                        'transparent')
-                    }
-                  >
-                    <span style={{ color: '#C4A882', fontSize: 15 }}>🔍</span>
-                    <span style={{ fontSize: 14, color: '#1A1208' }}>{s}</span>
-                  </div>
-                ))}
-            </div>
-          )}
         </div>
       </div>
 
-      <div style={styles.container}>
-        {/* Hero */}
-        <div style={styles.hero}>
-          <h1 style={styles.heroTitle}>Local stalls, real people 🤝</h1>
-          <p style={styles.heroSub}>
-            Order directly from artisans & vendors in {location.split(',')[0]}
-          </p>
-        </div>
-
-        {/* Category Pills */}
-        <div style={{ marginBottom: 24 }}>
-          <CategoryPills selected={category} onChange={setCategory} />
-        </div>
-
-        {/* Results */}
-        <div style={styles.resultsHeader}>
-          <h2 style={styles.sectionTitle}>
-            {query
-              ? `Results for "${query}"`
-              : category === 'all'
-                ? `Stalls near ${location.split(',')[0]}`
-                : `${category.replace('-', ' ')} near you`}
-          </h2>
-          <span style={styles.count}>{filtered.length} found</span>
-        </div>
-
-        {filtered.length === 0 ? (
-          <div style={styles.empty}>
-            <div style={{ fontSize: 52, marginBottom: 12 }}>😕</div>
-            <p
-              style={{
-                color: '#1A1208',
-                fontWeight: 700,
-                fontSize: 16,
-                marginBottom: 6,
-              }}
-            >
-              No stalls found here
-            </p>
-            <p style={{ color: '#8B7355', fontSize: 14 }}>
-              Try a different location or clear the search
-            </p>
+      <div
+        style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px 60px' }}
+      >
+        {/* Categories */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            overflowX: 'auto',
+            paddingBottom: 8,
+            marginBottom: 24,
+          }}
+        >
+          {CATEGORIES.map((c) => (
             <button
-              onClick={() => {
-                setQuery('')
-                setCategory('all')
+              key={c.id}
+              onClick={() => setCategory(c.id)}
+              style={{
+                background: category === c.id ? '#FF6B2B' : '#fff',
+                color: category === c.id ? '#fff' : '#8B7355',
+                border: `2px solid ${category === c.id ? '#FF6B2B' : '#F0E6D9'}`,
+                borderRadius: 20,
+                padding: '8px 16px',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontFamily: 'DM Sans, sans-serif',
               }}
-              style={styles.resetBtn}
             >
-              Clear Filters
+              {c.emoji} {c.label}
             </button>
+          ))}
+        </div>
+
+        {/* Results count */}
+        <p style={{ fontSize: 13, color: '#8B7355', marginBottom: 16 }}>
+          {filtered.length} stall{filtered.length !== 1 ? 's' : ''} found
+          {query ? ` for "${query}"` : ''}
+        </p>
+
+        {/* Stall Grid */}
+        {filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '80px 0' }}>
+            <div style={{ fontSize: 48 }}>🏪</div>
+            <p style={{ color: '#8B7355', marginTop: 12 }}>
+              No stalls found. Try a different search.
+            </p>
           </div>
         ) : (
-          <div style={styles.grid}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+              gap: 18,
+            }}
+          >
             {filtered.map((stall) => (
-              <VendorCard key={stall.id} stall={stall} />
+              <div
+                key={stall.id}
+                onClick={() => router.push(`/vendors/${stall.id}`)}
+                style={{
+                  background: '#fff',
+                  borderRadius: 14,
+                  border: '1px solid #F0E6D9',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 12px rgba(26,18,8,0.05)',
+                  transition: 'transform 0.15s',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'relative',
+                    height: 160,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <img
+                    src={stall.image}
+                    alt={stall.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 10,
+                      right: 10,
+                      background: stall.isOpen ? '#dcfce7' : '#fee2e2',
+                      color: stall.isOpen ? '#16a34a' : '#dc2626',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '3px 10px',
+                      borderRadius: 20,
+                    }}
+                  >
+                    {stall.isOpen ? '● Open' : '● Closed'}
+                  </div>
+                </div>
+                <div style={{ padding: '14px 16px' }}>
+                  <h3
+                    style={{
+                      fontFamily: 'Syne, sans-serif',
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: '#1A1208',
+                      marginBottom: 4,
+                    }}
+                  >
+                    {stall.name}
+                  </h3>
+                  <p
+                    style={{ fontSize: 12, color: '#8B7355', marginBottom: 8 }}
+                  >
+                    📍 {stall.location} · {stall.distance}
+                  </p>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 6,
+                      flexWrap: 'wrap',
+                      marginBottom: 10,
+                    }}
+                  >
+                    {stall.tags?.slice(0, 3).map((t: string) => (
+                      <span
+                        key={t}
+                        style={{
+                          background: '#FFF0E6',
+                          color: '#FF6B2B',
+                          border: '1px solid rgba(255,107,43,0.2)',
+                          borderRadius: 20,
+                          padding: '2px 10px',
+                          fontSize: 11,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: '#1A1208',
+                      }}
+                    >
+                      ⭐ {stall.rating} ({stall.reviewCount})
+                    </span>
+                    <span style={{ fontSize: 12, color: '#8B7355' }}>
+                      🚚 {stall.deliveryTime}
+                    </span>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         )}
       </div>
     </div>
   )
-}
-
-const styles: Record<string, React.CSSProperties> = {
-  stickySearch: {
-    position: 'sticky',
-    top: 0,
-    zIndex: 90,
-    background: '#1A1208',
-    padding: '12px 20px 14px',
-    boxShadow: '0 2px 16px rgba(26,18,8,0.18)',
-  },
-  locationBar: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-    background: 'rgba(255,255,255,0.08)',
-    border: '1.5px solid rgba(255,107,43,0.35)',
-    borderRadius: 10,
-    padding: '8px 14px',
-    cursor: 'pointer',
-  },
-  locDropdown: {
-    position: 'absolute',
-    top: 'calc(100% + 6px)',
-    left: 0,
-    right: 0,
-    background: '#fff',
-    borderRadius: 14,
-    boxShadow: '0 12px 40px rgba(0,0,0,0.18)',
-    border: '1.5px solid #F0E6D9',
-    zIndex: 999,
-    overflow: 'hidden',
-  },
-  locSearchWrap: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '10px 14px',
-    borderBottom: '1px solid #F0E6D9',
-  },
-  locInput: {
-    flex: 1,
-    border: 'none',
-    outline: 'none',
-    fontSize: 14,
-    fontFamily: 'DM Sans, sans-serif',
-    color: '#1A1208',
-  },
-  locOption: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-    padding: '10px 14px',
-    cursor: 'pointer',
-    transition: 'background 0.1s',
-  },
-  searchBox: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-    background: '#fff',
-    borderRadius: 12,
-    padding: '11px 16px',
-  },
-  searchInput: {
-    border: 'none',
-    outline: 'none',
-    fontSize: 15,
-    fontFamily: 'DM Sans, sans-serif',
-    flex: 1,
-    color: '#1A1208',
-    background: 'transparent',
-  },
-  clearBtn: {
-    background: '#F0E6D9',
-    color: '#8B7355',
-    borderRadius: '50%',
-    width: 22,
-    height: 22,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    fontSize: 11,
-    fontWeight: 700,
-    flexShrink: 0,
-  },
-  suggestDrop: {
-    position: 'absolute',
-    top: 'calc(100% + 6px)',
-    left: 0,
-    right: 0,
-    background: '#fff',
-    borderRadius: 14,
-    boxShadow: '0 12px 40px rgba(0,0,0,0.13)',
-    border: '1.5px solid #F0E6D9',
-    zIndex: 999,
-    overflow: 'hidden',
-  },
-  suggestLabel: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#8B7355',
-    padding: '10px 14px 6px',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  popularChip: {
-    background: '#FFF0E6',
-    color: '#FF6B2B',
-    border: '1px solid rgba(255,107,43,0.2)',
-    borderRadius: 20,
-    padding: '5px 12px',
-    fontSize: 12,
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  suggestRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-    padding: '10px 14px',
-    cursor: 'pointer',
-    transition: 'background 0.1s',
-  },
-  container: { maxWidth: 1200, margin: '0 auto', padding: '24px 20px 60px' },
-  hero: { marginBottom: 20 },
-  heroTitle: {
-    fontFamily: 'Syne, sans-serif',
-    fontSize: 26,
-    fontWeight: 800,
-    color: '#1A1208',
-    marginBottom: 4,
-  },
-  heroSub: { color: '#8B7355', fontSize: 14 },
-  resultsHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontFamily: 'Syne, sans-serif',
-    fontSize: 18,
-    fontWeight: 700,
-    color: '#1A1208',
-    textTransform: 'capitalize',
-  },
-  count: {
-    fontSize: 13,
-    color: '#8B7355',
-    fontWeight: 500,
-    background: '#F0E6D9',
-    padding: '3px 10px',
-    borderRadius: 20,
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: 20,
-  },
-  empty: { textAlign: 'center', padding: '60px 0' },
-  resetBtn: {
-    marginTop: 16,
-    background: '#FF6B2B',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 10,
-    padding: '10px 24px',
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
 }

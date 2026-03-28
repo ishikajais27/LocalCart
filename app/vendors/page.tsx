@@ -315,9 +315,9 @@ export default function VendorPage() {
       await fetch('/api/auth/update-stall', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, stallId: null }),
+        body: JSON.stringify({ userId: user.id, stallId: undefined }),
       })
-      login({ ...user, stallId: null })
+      login({ ...user, stallId: undefined })
       setStalls((prev) => prev.filter((s) => (s._id || s.id) !== stallId))
     } catch (e) {
       console.error(e)

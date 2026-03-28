@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function AddProductForm({ stallId }: { stallId: string }) {
   const [form, setForm] = useState({
@@ -11,8 +11,25 @@ export default function AddProductForm({ stallId }: { stallId: string }) {
   })
   const [saved, setSaved] = useState(false)
   const [products, setProducts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   const f = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }))
+
+  useEffect(() => {
+    if (!stallId) return
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(`/api/products?stallId=${stallId}`)
+        const data = await res.json()
+        if (Array.isArray(data)) setProducts(data)
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProducts()
+  }, [stallId])
 
   const input: React.CSSProperties = {
     width: '100%',
@@ -62,7 +79,7 @@ export default function AddProductForm({ stallId }: { stallId: string }) {
       setProducts((p) => [saved, ...p])
     } catch (e) {
       console.error(e)
-      setProducts((p) => [{ ...newProduct, id: Date.now() }, ...p])
+      setProducts((p) => [{ ...newProduct, _id: Date.now() }, ...p])
     }
 
     setForm({
@@ -74,6 +91,15 @@ export default function AddProductForm({ stallId }: { stallId: string }) {
     })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      await fetch(`/api/products/${id}`, { method: 'DELETE' })
+    } catch (e) {
+      console.error(e)
+    }
+    setProducts((p) => p.filter((x) => x._id !== id))
   }
 
   return (
@@ -187,7 +213,23 @@ export default function AddProductForm({ stallId }: { stallId: string }) {
             ({products.length})
           </span>
         </h3>
-        {products.length === 0 ? (
+
+        {loading ? (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '48px 0',
+              background: '#FFF8F0',
+              borderRadius: 14,
+              border: '2px dashed #F0E6D9',
+            }}
+          >
+            <div style={{ fontSize: 32 }}>⏳</div>
+            <p style={{ color: '#8B7355', marginTop: 8, fontSize: 14 }}>
+              Loading products...
+            </p>
+          </div>
+        ) : products.length === 0 ? (
           <div
             style={{
               textAlign: 'center',
@@ -217,7 +259,7 @@ export default function AddProductForm({ stallId }: { stallId: string }) {
                   gap: 12,
                 }}
               >
-                <div>
+                <div style={{ flex: 1 }}>
                   <p
                     style={{
                       fontFamily: 'Syne, sans-serif',
@@ -233,7 +275,14 @@ export default function AddProductForm({ stallId }: { stallId: string }) {
                     {p.description}
                   </p>
                   {p.variants?.length > 0 && (
-                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: 6,
+                        marginTop: 6,
+                        flexWrap: 'wrap',
+                      }}
+                    >
                       {p.variants.map((v: string) => (
                         <span key={v} className="badge">
                           {v}
@@ -259,6 +308,23 @@ export default function AddProductForm({ stallId }: { stallId: string }) {
                       ₹{p.originalPrice}
                     </p>
                   )}
+                  <button
+                    onClick={() => handleDelete(p._id)}
+                    style={{
+                      marginTop: 8,
+                      background: 'none',
+                      border: '1px solid #fee2e2',
+                      color: '#dc2626',
+                      borderRadius: 6,
+                      padding: '4px 10px',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'DM Sans, sans-serif',
+                    }}
+                  >
+                    🗑 Remove
+                  </button>
                 </div>
               </div>
             ))}

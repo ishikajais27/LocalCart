@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { MOCK_ORDERS } from '@/lib/mockData'
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/lib/authContext'
 
 const STATUS_STYLES: Record<
   string,
@@ -12,21 +12,46 @@ const STATUS_STYLES: Record<
   delivered: { bg: '#f3f4f6', color: '#6b7280', label: '📦 Delivered' },
 }
 
+const next: Record<string, string> = {
+  pending: 'processing',
+  processing: 'ready',
+  ready: 'delivered',
+}
+
 export default function VendorOrders() {
-  const [orders, setOrders] = useState(MOCK_ORDERS)
+  const { user } = useAuth()
+  const [orders, setOrders] = useState<any[]>([])
   const [filter, setFilter] = useState('all')
 
-  const next: Record<string, string> = {
-    pending: 'processing',
-    processing: 'ready',
-    ready: 'delivered',
-  }
+  useEffect(() => {
+    if (!user?.stallId) return
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch(`/api/orders?stallId=${user.stallId}`)
+        const data = await res.json()
+        if (Array.isArray(data)) setOrders(data)
+        else setOrders([])
+      } catch (e) {
+        console.error(e)
+        setOrders([])
+      }
+    }
+    fetchOrders()
+    const interval = setInterval(fetchOrders, 5000)
+    return () => clearInterval(interval)
+  }, [user])
 
-  const updateStatus = (id: string) => {
+  const updateStatus = async (id: string) => {
+    const order = orders.find((o) => o._id === id)
+    if (!order || !next[order.status]) return
+    const newStatus = next[order.status]
+    await fetch(`/api/orders/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    })
     setOrders((prev) =>
-      prev.map((o) =>
-        o.id === id && next[o.status] ? { ...o, status: next[o.status] } : o,
-      ),
+      prev.map((o) => (o._id === id ? { ...o, status: newStatus } : o)),
     )
   }
 
@@ -85,10 +110,10 @@ export default function VendorOrders() {
           </div>
         )}
         {filtered.map((order) => {
-          const s = STATUS_STYLES[order.status]
+          const s = STATUS_STYLES[order.status] || STATUS_STYLES.pending
           return (
             <div
-              key={order.id}
+              key={order._id}
               style={{
                 background: '#fff',
                 border: '1px solid #F0E6D9',
@@ -113,21 +138,30 @@ export default function VendorOrders() {
                       marginBottom: 4,
                     }}
                   >
-                    {order.product}
+                    {order.items?.[0]?.name ?? 'Order'}
                   </h4>
                   <p style={{ fontSize: 12, color: '#8B7355', marginTop: 3 }}>
-                    👤 {order.customer} ·{' '}
-                    {order.variant !== '-'
-                      ? `Variant: ${order.variant} · `
+                    👤 {order.name} · Qty: {order.items?.[0]?.qty ?? 1}
+                    {order.items?.[0]?.variant
+                      ? ` · ${order.items[0].variant}`
                       : ''}
-                    Qty: {order.qty}
                   </p>
                   <p style={{ fontSize: 12, color: '#8B7355', marginTop: 3 }}>
-                    {order.type === 'preorder'
+                    {order.orderType === 'preorder'
                       ? '📅 Pre-order'
                       : '⚡ Immediate'}{' '}
                     · 🕐 {order.slot}
                   </p>
+                  {order.address && (
+                    <p style={{ fontSize: 12, color: '#8B7355', marginTop: 3 }}>
+                      📍 {order.address}
+                    </p>
+                  )}
+                  {order.phone && (
+                    <p style={{ fontSize: 12, color: '#8B7355', marginTop: 3 }}>
+                      📞 +91 {order.phone}
+                    </p>
+                  )}
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <span
@@ -155,12 +189,17 @@ export default function VendorOrders() {
                   >
                     ₹{order.total}
                   </p>
-                  <p style={{ fontSize: 11, color: '#C4A882' }}>{order.time}</p>
+                  <p style={{ fontSize: 11, color: '#C4A882' }}>
+                    {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                    })}
+                  </p>
                 </div>
               </div>
               {order.status !== 'delivered' && (
                 <button
-                  onClick={() => updateStatus(order.id)}
+                  onClick={() => updateStatus(order._id)}
                   className="btn-primary"
                   style={{
                     marginTop: 14,

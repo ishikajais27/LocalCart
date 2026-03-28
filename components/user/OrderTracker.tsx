@@ -1,31 +1,51 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { MOCK_ORDERS } from '@/lib/mockData'
 import UserHeader from './UserHeader'
+import { useAuth } from '@/lib/authContext'
 
 const STEPS = [
-  'Order Placed',
-  'Confirmed',
-  'Preparing',
-  'Out for Delivery',
-  'Delivered',
+  { label: 'Order Placed', icon: '🧾' },
+  { label: 'Confirmed', icon: '✅' },
+  { label: 'Preparing', icon: '👨‍🍳' },
+  { label: 'Out for Delivery', icon: '🚴' },
+  { label: 'Delivered', icon: '🎉' },
 ]
 
 const STATUS_STEP: Record<string, number> = {
-  placed: 0,
-  confirmed: 1,
-  preparing: 2,
-  'out-for-delivery': 3,
+  pending: 0,
+  processing: 2,
+  ready: 3,
   delivered: 4,
 }
 
 export default function OrderTracker() {
   const router = useRouter()
-  const activeOrders = MOCK_ORDERS.filter((o) => o.status !== 'delivered')
-  const [selected, setSelected] = useState(activeOrders[0]?.id || '')
+  const { user } = useAuth()
+  const [allOrders, setAllOrders] = useState<any[]>([])
+  const [selected, setSelected] = useState('')
 
-  const order = MOCK_ORDERS.find((o) => o.id === selected)
+  useEffect(() => {
+    if (!user) return
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch(`/api/orders?userId=${user.id}`)
+        const data = await res.json()
+        if (Array.isArray(data)) {
+          setAllOrders(data)
+          if (data.length > 0 && !selected) setSelected(data[0]._id)
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    fetchOrders()
+    const interval = setInterval(fetchOrders, 5000)
+    return () => clearInterval(interval)
+  }, [user])
+
+  const activeOrders = allOrders.filter((o) => o.status !== 'delivered')
+  const order = allOrders.find((o) => o._id === selected)
   const stepIndex = order ? (STATUS_STEP[order.status] ?? 0) : 0
 
   return (
@@ -91,11 +111,11 @@ export default function OrderTracker() {
             >
               {activeOrders.map((o) => (
                 <div
-                  key={o.id}
-                  onClick={() => setSelected(o.id)}
+                  key={o._id}
+                  onClick={() => setSelected(o._id)}
                   style={{
                     background: '#fff',
-                    border: `2px solid ${selected === o.id ? '#FF6B2B' : '#F0E6D9'}`,
+                    border: `2px solid ${selected === o._id ? '#FF6B2B' : '#F0E6D9'}`,
                     borderRadius: 12,
                     padding: '12px 16px',
                     cursor: 'pointer',
@@ -105,8 +125,11 @@ export default function OrderTracker() {
                   }}
                 >
                   <img
-                    src={(o as any).image}
-                    alt={o.product}
+                    src={
+                      o.items?.[0]?.image ||
+                      'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=100'
+                    }
+                    alt={o.items?.[0]?.name}
                     style={{
                       width: 48,
                       height: 48,
@@ -125,7 +148,7 @@ export default function OrderTracker() {
                         marginBottom: 2,
                       }}
                     >
-                      {o.product}
+                      {o.items?.[0]?.name || 'Order'}
                     </p>
                     <p
                       style={{
@@ -134,7 +157,7 @@ export default function OrderTracker() {
                         fontWeight: 600,
                       }}
                     >
-                      {(o as any).stallName}
+                      {o.stallName}
                     </p>
                     <p style={{ fontSize: 11, color: '#8B7355', marginTop: 2 }}>
                       ₹{o.total}
@@ -164,8 +187,11 @@ export default function OrderTracker() {
                   }}
                 >
                   <img
-                    src={(order as any).image}
-                    alt={order.product}
+                    src={
+                      order.items?.[0]?.image ||
+                      'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=100'
+                    }
+                    alt={order.items?.[0]?.name}
                     style={{
                       width: 64,
                       height: 64,
@@ -182,7 +208,7 @@ export default function OrderTracker() {
                         color: '#1A1208',
                       }}
                     >
-                      {order.product}
+                      {order.items?.[0]?.name || 'Order'}
                     </p>
                     <p
                       style={{
@@ -191,22 +217,24 @@ export default function OrderTracker() {
                         fontWeight: 600,
                       }}
                     >
-                      {(order as any).stallName}
+                      {order.stallName}
                     </p>
                     <p style={{ fontSize: 12, color: '#8B7355' }}>
-                      Qty: {order.qty}
-                      {order.variant !== '-' ? ` · ${order.variant}` : ''}
+                      Qty: {order.items?.[0]?.qty || 1}
+                      {order.items?.[0]?.variant
+                        ? ` · ${order.items[0].variant}`
+                        : ''}
                     </p>
                   </div>
                 </div>
 
                 <div style={{ position: 'relative', paddingLeft: 32 }}>
-                  {STEPS.map((step, i) => {
+                  {STEPS.map(({ label, icon }, i) => {
                     const done = i <= stepIndex
                     const active = i === stepIndex
                     return (
                       <div
-                        key={step}
+                        key={label}
                         style={{
                           position: 'relative',
                           paddingBottom: i < STEPS.length - 1 ? 28 : 0,
@@ -260,7 +288,7 @@ export default function OrderTracker() {
                               : 'DM Sans, sans-serif',
                           }}
                         >
-                          {step}
+                          {icon} {label}
                         </p>
                         {active && (
                           <p
@@ -290,9 +318,11 @@ export default function OrderTracker() {
                   }}
                 >
                   <p style={{ fontSize: 12, color: '#8B7355' }}>
-                    Est. delivery:{' '}
+                    Type:{' '}
                     <strong style={{ color: '#1A1208' }}>
-                      {(order as any).eta || 'Today'}
+                      {order.orderType === 'preorder'
+                        ? '📅 Pre-order'
+                        : '⚡ Immediate'}
                     </strong>
                   </p>
                   <p

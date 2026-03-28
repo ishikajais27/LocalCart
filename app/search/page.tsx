@@ -1,8 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import UserHeader from '@/components/user/UserHeader'
-import { getAllStalls } from '@/lib/stallsStore'
 import { CATEGORIES } from '@/lib/mockData'
 import WriteReview from '@/components/user/WriteReview'
 
@@ -10,14 +9,33 @@ export default function SearchPage() {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
-  const allStalls = getAllStalls()
+  const [allStalls, setAllStalls] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [showReview, setShowReview] = useState(false)
+
+  useEffect(() => {
+    const fetchStalls = async () => {
+      try {
+        const res = await fetch('/api/stalls')
+        const data = await res.json()
+        if (Array.isArray(data)) setAllStalls(data)
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchStalls()
+    const interval = setInterval(fetchStalls, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
   const filtered = allStalls.filter((s) => {
     const matchCat = category === 'all' || s.category === category
     const matchQ =
       !query ||
-      s.name.toLowerCase().includes(query.toLowerCase()) ||
-      s.location.toLowerCase().includes(query.toLowerCase()) ||
+      s.name?.toLowerCase().includes(query.toLowerCase()) ||
+      s.location?.toLowerCase().includes(query.toLowerCase()) ||
       s.tags?.some((t: string) => t.toLowerCase().includes(query.toLowerCase()))
     return matchCat && matchQ
   })
@@ -59,7 +77,6 @@ export default function SearchPage() {
           >
             Handmade, homegrown, and just around the corner.
           </p>
-          {/* Search Bar */}
           <div
             style={{
               display: 'flex',
@@ -97,6 +114,7 @@ export default function SearchPage() {
           </div>
         </div>
       </div>
+
       <div
         style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px 60px' }}
       >
@@ -132,142 +150,155 @@ export default function SearchPage() {
           ))}
         </div>
 
-        {/* Results count */}
-        <p style={{ fontSize: 13, color: '#8B7355', marginBottom: 16 }}>
-          {filtered.length} stall{filtered.length !== 1 ? 's' : ''} found
-          {query ? ` for "${query}"` : ''}
-        </p>
-
-        {/* Stall Grid */}
-        {filtered.length === 0 ? (
+        {loading ? (
           <div style={{ textAlign: 'center', padding: '80px 0' }}>
-            <div style={{ fontSize: 48 }}>🏪</div>
-            <p style={{ color: '#8B7355', marginTop: 12 }}>
-              No stalls found. Try a different search.
-            </p>
+            <div style={{ fontSize: 32 }}>⏳</div>
+            <p style={{ color: '#8B7355', marginTop: 12 }}>Loading stalls...</p>
           </div>
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-              gap: 18,
-            }}
-          >
-            {filtered.map((stall) => (
+          <>
+            <p style={{ fontSize: 13, color: '#8B7355', marginBottom: 16 }}>
+              {filtered.length} stall{filtered.length !== 1 ? 's' : ''} found
+              {query ? ` for "${query}"` : ''}
+            </p>
+
+            {filtered.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                <div style={{ fontSize: 48 }}>🏪</div>
+                <p style={{ color: '#8B7355', marginTop: 12 }}>
+                  No stalls found. Try a different search.
+                </p>
+              </div>
+            ) : (
               <div
-                key={stall.id}
-                onClick={() => router.push(`/vendors/${stall.id}`)}
                 style={{
-                  background: '#fff',
-                  borderRadius: 14,
-                  border: '1px solid #F0E6D9',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 12px rgba(26,18,8,0.05)',
-                  transition: 'transform 0.15s',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                  gap: 18,
                 }}
               >
-                <div
-                  style={{
-                    position: 'relative',
-                    height: 160,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <img
-                    src={stall.image}
-                    alt={stall.name}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
+                {filtered.map((stall) => (
                   <div
+                    key={stall._id || stall.id}
+                    onClick={() =>
+                      router.push(`/vendors/${stall._id || stall.id}`)
+                    }
                     style={{
-                      position: 'absolute',
-                      top: 10,
-                      right: 10,
-                      background: stall.isOpen ? '#dcfce7' : '#fee2e2',
-                      color: stall.isOpen ? '#16a34a' : '#dc2626',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      padding: '3px 10px',
-                      borderRadius: 20,
+                      background: '#fff',
+                      borderRadius: 14,
+                      border: '1px solid #F0E6D9',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 12px rgba(26,18,8,0.05)',
+                      transition: 'transform 0.15s',
                     }}
                   >
-                    {stall.isOpen ? '● Open' : '● Closed'}
-                  </div>
-                </div>
-                <div style={{ padding: '14px 16px' }}>
-                  <h3
-                    style={{
-                      fontFamily: 'Syne, sans-serif',
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: '#1A1208',
-                      marginBottom: 4,
-                    }}
-                  >
-                    {stall.name}
-                  </h3>
-                  <p
-                    style={{ fontSize: 12, color: '#8B7355', marginBottom: 8 }}
-                  >
-                    📍 {stall.location} · {stall.distance}
-                  </p>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 6,
-                      flexWrap: 'wrap',
-                      marginBottom: 10,
-                    }}
-                  >
-                    {stall.tags?.slice(0, 3).map((t: string) => (
-                      <span
-                        key={t}
-                        style={{
-                          background: '#FFF0E6',
-                          color: '#FF6B2B',
-                          border: '1px solid rgba(255,107,43,0.2)',
-                          borderRadius: 20,
-                          padding: '2px 10px',
-                          fontSize: 11,
-                          fontWeight: 500,
-                        }}
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <span
+                    <div
                       style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: '#1A1208',
+                        position: 'relative',
+                        height: 160,
+                        overflow: 'hidden',
                       }}
                     >
-                      ⭐ {stall.rating} ({stall.reviewCount})
-                    </span>
-                    <span style={{ fontSize: 12, color: '#8B7355' }}>
-                      🚚 {stall.deliveryTime}
-                    </span>
+                      <img
+                        src={stall.image}
+                        alt={stall.name}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 10,
+                          right: 10,
+                          background: stall.isOpen ? '#dcfce7' : '#fee2e2',
+                          color: stall.isOpen ? '#16a34a' : '#dc2626',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '3px 10px',
+                          borderRadius: 20,
+                        }}
+                      >
+                        {stall.isOpen ? '● Open' : '● Closed'}
+                      </div>
+                    </div>
+                    <div style={{ padding: '14px 16px' }}>
+                      <h3
+                        style={{
+                          fontFamily: 'Syne, sans-serif',
+                          fontSize: 15,
+                          fontWeight: 700,
+                          color: '#1A1208',
+                          marginBottom: 4,
+                        }}
+                      >
+                        {stall.name}
+                      </h3>
+                      <p
+                        style={{
+                          fontSize: 12,
+                          color: '#8B7355',
+                          marginBottom: 8,
+                        }}
+                      >
+                        📍 {stall.location} · {stall.distance}
+                      </p>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 6,
+                          flexWrap: 'wrap',
+                          marginBottom: 10,
+                        }}
+                      >
+                        {stall.tags?.slice(0, 3).map((t: string) => (
+                          <span
+                            key={t}
+                            style={{
+                              background: '#FFF0E6',
+                              color: '#FF6B2B',
+                              border: '1px solid rgba(255,107,43,0.2)',
+                              borderRadius: 20,
+                              padding: '2px 10px',
+                              fontSize: 11,
+                              fontWeight: 500,
+                            }}
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: '#1A1208',
+                          }}
+                        >
+                          ⭐ {stall.rating} ({stall.reviewCount})
+                        </span>
+                        <span style={{ fontSize: 12, color: '#8B7355' }}>
+                          🚚 {stall.deliveryTime}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
-        {/* Floating Review Button */}
+
         <button
           onClick={() => setShowReview(true)}
           style={{
@@ -295,7 +326,6 @@ export default function SearchPage() {
 
         {showReview && <WriteReview onClose={() => setShowReview(false)} />}
       </div>
-      x
     </div>
   )
 }

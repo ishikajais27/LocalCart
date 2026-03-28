@@ -1,12 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '../../lib/authContext'
-import VendorHeader from '../../components/vendor/Header'
+import { useAuth } from '@/lib/authContext'
+import VendorHeader from '@/components/vendor/Header'
 import VendorOrders from '@/components/vendor/VendorOrders'
 import VendorOnboardForm from '@/components/vendor/VendorOnboardForm'
 import AddProductForm from '@/components/vendor/PreorderForm'
-import { MOCK_ORDERS } from '@/lib/mockData'
 
 export default function VendorPage() {
   const { user, loading } = useAuth()
@@ -14,18 +13,36 @@ export default function VendorPage() {
   const [tab, setTab] = useState('orders')
   const [stallLive, setStallLive] = useState(false)
   const [stallData, setStallData] = useState<any>(null)
+  const [orders, setOrders] = useState<any[]>([])
 
   useEffect(() => {
     if (!loading && !user) router.push('/account')
     if (!loading && user?.role === 'user') router.push('/search')
   }, [user, loading, router])
 
+  useEffect(() => {
+    if (!user?.stallId) return
+    setStallLive(true)
+    // Load existing stall data
+    fetch(`/api/stalls/${user.stallId}`)
+      .then((r) => r.json())
+      .then((d) => setStallData(d))
+      .catch(() => {})
+    // Load orders
+    fetch(`/api/orders?stallId=${user.stallId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d)) setOrders(d)
+      })
+      .catch(() => {})
+  }, [user])
+
   if (loading || !user) return null
 
-  const totalRevenue = MOCK_ORDERS.filter(
-    (o) => o.status === 'delivered',
-  ).reduce((s, o) => s + o.total, 0)
-  const pendingCount = MOCK_ORDERS.filter((o) => o.status === 'pending').length
+  const totalRevenue = orders
+    .filter((o) => o.status === 'delivered')
+    .reduce((s, o) => s + o.total, 0)
+  const pendingCount = orders.filter((o) => o.status === 'pending').length
 
   return (
     <div style={{ minHeight: '100vh', background: '#FFF8F0' }}>
@@ -34,7 +51,7 @@ export default function VendorPage() {
       <div style={styles.container}>
         <div style={styles.statsBar}>
           {[
-            { label: 'Total Orders', value: MOCK_ORDERS.length, icon: '📦' },
+            { label: 'Total Orders', value: orders.length, icon: '📦' },
             {
               label: 'Pending',
               value: pendingCount,
@@ -108,15 +125,6 @@ export default function VendorPage() {
                       Customers can now find and order from your stall.
                     </p>
                   </div>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => {
-                      setStallLive(false)
-                      setStallData(null)
-                    }}
-                  >
-                    Take Offline
-                  </button>
                 </div>
                 <div style={styles.stallPreview}>
                   {[
@@ -153,8 +161,11 @@ export default function VendorPage() {
 
         {tab === 'add' && (
           <div style={styles.section}>
-            {/* <AddProductForm /> */}
-            <AddProductForm stallId={stallData?.id || 's_new'} />
+            <AddProductForm
+              stallId={
+                stallData?.id || stallData?._id || user?.stallId || 's_new'
+              }
+            />
           </div>
         )}
       </div>

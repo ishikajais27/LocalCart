@@ -10,12 +10,14 @@ interface CartItem {
   variant?: string
   image: string
   stallName: string
+  stallId: string
   customization?: string
 }
 
 interface Props {
   cart: CartItem[]
   stallName: string
+  stallId: string
   stallCategory: string
   onClose: () => void
   onSuccess: () => void
@@ -80,6 +82,7 @@ const CUSTOMIZATION_OPTIONS: Record<string, string[]> = {
 export default function Checkout({
   cart,
   stallName,
+  stallId,
   stallCategory,
   onClose,
   onSuccess,
@@ -133,7 +136,39 @@ export default function Checkout({
 
   const handlePlace = async () => {
     setPlacing(true)
-    await new Promise((r) => setTimeout(r, 1600))
+    try {
+      const stored = localStorage.getItem('gully_user')
+      const user = stored ? JSON.parse(stored) : null
+
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id || 'guest',
+          stallId,
+          stallName,
+          items: cart.map((c) => ({
+            productId: c.productId,
+            name: c.name,
+            price: c.price,
+            qty: c.qty,
+            variant: c.variant || '',
+            image: c.image,
+          })),
+          total,
+          orderType,
+          slot: orderType === 'preorder' ? selectedSlot : 'ASAP',
+          name,
+          phone,
+          address,
+          customizations: selectedCustomizations,
+          specialNote,
+          status: 'pending',
+        }),
+      })
+    } catch (e) {
+      console.error(e)
+    }
     setPlacing(false)
     onSuccess()
   }
@@ -255,7 +290,7 @@ export default function Checkout({
         </div>
 
         <div style={styles.body}>
-          {/* STEP 1: Details */}
+          {/* STEP 1 */}
           {step === 'details' && (
             <div>
               <div style={styles.cartSummary}>
@@ -407,7 +442,7 @@ export default function Checkout({
             </div>
           )}
 
-          {/* STEP 2: Schedule + Customise */}
+          {/* STEP 2 */}
           {step === 'schedule' && (
             <div>
               <div style={styles.sectionLabel}>⚡ Order Type</div>
@@ -500,7 +535,6 @@ export default function Checkout({
                       </div>
                     ))}
                   </div>
-
                   <div style={styles.sectionLabel}>🕐 Select Time Slot</div>
                   <div
                     style={{
@@ -590,11 +624,10 @@ export default function Checkout({
                 </div>
               )}
 
-              {/* Customizations */}
               <div style={{ marginTop: 24 }}>
                 <div style={styles.sectionLabel}>✨ Customise Your Order</div>
                 <p style={{ fontSize: 12, color: '#8B7355', marginBottom: 12 }}>
-                  Select any add-ons or special requests for this stall
+                  Select any add-ons or special requests
                 </p>
                 <div
                   style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
@@ -658,7 +691,6 @@ export default function Checkout({
                     </div>
                   ))}
                 </div>
-
                 <div style={{ marginTop: 16 }}>
                   <label style={styles.label}>
                     Special Instructions (optional)
@@ -680,10 +712,9 @@ export default function Checkout({
             </div>
           )}
 
-          {/* STEP 3: Confirm */}
+          {/* STEP 3 */}
           {step === 'confirm' && (
             <div>
-              {/* Order Items */}
               <div style={styles.confirmSection}>
                 <div style={styles.sectionLabel}>🛒 Items</div>
                 {cart.map((item, i) => (
@@ -739,7 +770,6 @@ export default function Checkout({
                 ))}
               </div>
 
-              {/* Delivery Info */}
               <div style={styles.confirmSection}>
                 <div style={styles.sectionLabel}>📍 Delivery Details</div>
                 <div style={styles.confirmRow}>
@@ -764,7 +794,6 @@ export default function Checkout({
                 </div>
               </div>
 
-              {/* Schedule */}
               <div style={styles.confirmSection}>
                 <div style={styles.sectionLabel}>⏰ Order Schedule</div>
                 <div style={styles.confirmRow}>
@@ -804,42 +833,6 @@ export default function Checkout({
                 )}
               </div>
 
-              {/* Customizations */}
-              {(selectedCustomizations.length > 0 || specialNote) && (
-                <div style={styles.confirmSection}>
-                  <div style={styles.sectionLabel}>✨ Customisations</div>
-                  {selectedCustomizations.map((c) => (
-                    <div
-                      key={c}
-                      style={{
-                        fontSize: 13,
-                        color: '#FF6B2B',
-                        fontWeight: 500,
-                        marginBottom: 4,
-                      }}
-                    >
-                      ✓ {c}
-                    </div>
-                  ))}
-                  {specialNote && (
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: '#6B5744',
-                        marginTop: 6,
-                        background: '#FFF8F0',
-                        padding: '8px 12px',
-                        borderRadius: 8,
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      📝 {specialNote}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Price Breakdown */}
               <div
                 style={{
                   ...styles.confirmSection,
@@ -897,7 +890,6 @@ export default function Checkout({
           )}
         </div>
 
-        {/* Bottom CTA */}
         <div style={styles.footer}>
           {step !== 'confirm' ? (
             <button onClick={handleNext} style={styles.primaryBtn}>
@@ -909,20 +901,7 @@ export default function Checkout({
               disabled={placing}
               style={{ ...styles.primaryBtn, opacity: placing ? 0.8 : 1 }}
             >
-              {placing ? (
-                <span
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 10,
-                  }}
-                >
-                  <span style={styles.spinner} /> Placing Order...
-                </span>
-              ) : (
-                `Place Order · ₹${total}`
-              )}
+              {placing ? 'Placing Order...' : `Place Order · ₹${total}`}
             </button>
           )}
         </div>
@@ -951,7 +930,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     boxShadow: '0 -8px 40px rgba(26,18,8,0.2)',
-    animation: 'slideUp 0.3s ease',
   },
   header: {
     display: 'flex',
@@ -1124,13 +1102,4 @@ const styles: Record<string, React.CSSProperties> = {
   },
   confirmKey: { fontSize: 13, color: '#8B7355' },
   confirmVal: { fontSize: 13, fontWeight: 600, color: '#1A1208' },
-  spinner: {
-    display: 'inline-block',
-    width: 16,
-    height: 16,
-    borderRadius: '50%',
-    border: '2px solid rgba(255,255,255,0.4)',
-    borderTopColor: '#fff',
-    animation: 'spin 0.7s linear infinite',
-  },
 }

@@ -1,13 +1,14 @@
 'use client'
 import { useState } from 'react'
 import { CATEGORIES } from '@/lib/mockData'
-import { addStall } from '@/lib/stallsStore'
+import { useAuth } from '@/lib/authContext'
 
 export default function VendorOnboardForm({
   onComplete,
 }: {
   onComplete: (stall: any) => void
 }) {
+  const { user, login } = useAuth()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
     name: '',
@@ -46,43 +47,52 @@ export default function VendorOnboardForm({
     letterSpacing: '0.5px',
   }
 
-  // const submit = () => {
-  //   setLoading(true)
-  //   setTimeout(() => {
-  //     onComplete({
-  //       ...form,
-  //       id: 's_new',
-  //       rating: 0,
-  //       reviewCount: 0,
-  //       isOpen: true,
-  //     })
-  //     setLoading(false)
-  //   }, 1200)
-  // }
-  const submit = () => {
+  const submit = async () => {
     setLoading(true)
-    setTimeout(() => {
-      const newStall = {
-        ...form,
-        id: `s_new_${Date.now()}`,
-        rating: 0,
-        reviewCount: 0,
-        isOpen: true,
-        image:
-          'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400',
-        tags: [],
-        distance: '0.0 km',
-        deliveryTime: `${form.openTime}–${form.closeTime}`,
+    const newStall = {
+      ...form,
+      vendorId: user?.id,
+      rating: 0,
+      reviewCount: 0,
+      isOpen: true,
+      image:
+        'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400',
+      tags: [],
+      distance: '0.0 km',
+      deliveryTime: `${form.openTime}–${form.closeTime}`,
+    }
+
+    try {
+      const res = await fetch('/api/stalls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newStall),
+      })
+      const saved = await res.json()
+      const stallId = saved._id
+
+      // Link stallId to vendor account
+      if (user?.id) {
+        await fetch('/api/auth/update-stall', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, stallId }),
+        })
+        // Update local auth context so vendor can see their orders immediately
+        login({ ...user, stallId })
       }
-      addStall(newStall)
-      onComplete(newStall)
-      setLoading(false)
-    }, 1200)
+
+      onComplete({ ...newStall, id: stallId, _id: stallId })
+    } catch (e) {
+      console.error(e)
+      const fallbackId = `s_new_${Date.now()}`
+      onComplete({ ...newStall, id: fallbackId })
+    }
+    setLoading(false)
   }
 
   return (
     <div style={{ maxWidth: 520 }}>
-      {/* Progress */}
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 28 }}>
         {[1, 2, 3].map((n) => (
           <div key={n} style={{ display: 'flex', alignItems: 'center' }}>

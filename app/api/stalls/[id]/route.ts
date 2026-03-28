@@ -23,6 +23,19 @@ const StallSchema = new mongoose.Schema({
 })
 
 const Stall = mongoose.models.Stall || mongoose.model('Stall', StallSchema)
+export async function DELETE(
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    await connectDB()
+    const { id } = await context.params
+    await Stall.findByIdAndDelete(id)
+    return NextResponse.json({ success: true })
+  } catch (e) {
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}
 
 export async function GET(
   _req: NextRequest,

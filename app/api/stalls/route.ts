@@ -50,37 +50,39 @@ async function seedIfEmpty() {
   }
 }
 
-// export async function GET() {
-//   try {
-//     await connectDB()
-//     await seedIfEmpty()
-//     const stalls = await Stall.find({}).sort({ createdAt: -1 })
-//     return NextResponse.json(stalls)
-//   } catch (e) {
-//     console.error(e)
-//     return NextResponse.json({ error: 'Server error' }, { status: 500 })
-//   }
-// }
-
-// export async function POST(req: NextRequest) {
-//   try {
-//     await connectDB()
-//     const body = await req.json()
-//     const stall = await Stall.create(body)
-//     return NextResponse.json(stall, { status: 201 })
-//   } catch (e) {
-//     console.error(e)
-//     return NextResponse.json({ error: 'Server error' }, { status: 500 })
-//   }
-// }
-
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await connectDB()
-    // Run seeding in background — don't block the response
     seedIfEmpty().catch((e) => console.error('Seed error:', e))
-    const stalls = await Stall.find({}).sort({ createdAt: -1 })
+    const { searchParams } = new URL(req.url)
+    const vendorId = searchParams.get('vendorId')
+    const query = vendorId ? { vendorId } : {}
+    const stalls = await Stall.find(query).sort({ createdAt: -1 })
     return NextResponse.json(stalls)
+  } catch (e) {
+    console.error(e)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    await connectDB()
+    const body = await req.json()
+    const stall = await Stall.create(body)
+    return NextResponse.json(stall)
+  } catch (e) {
+    console.error(e)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    await connectDB()
+    const { stallId } = await req.json()
+    await Stall.findByIdAndDelete(stallId)
+    return NextResponse.json({ success: true })
   } catch (e) {
     console.error(e)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
